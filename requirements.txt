@@ -1,0 +1,13 @@
+numpy
+torch
+torchvision
+torchshow
+lightning
+tqdm
+matplotlib
+tensorboard
+opencv-python
+ffmpeg
+ipykernel
+einops
+scikit-learn
