@@ -4,6 +4,14 @@ import os
 import csv
 
 
+SPLIT_FILES = [
+    "physics/evaluation_results_test_id.json",
+    "physics/evaluation_results_test_ood_gravity.json",
+    "physics/evaluation_results_test_ood_velocity.json",
+    "physics/evaluation_results_test_ood_position.json",
+]
+
+
 def load_json(path):
     with open(path, "r") as f:
         return json.load(f)
@@ -16,6 +24,15 @@ def extract_split_name(data, fallback_path):
         return os.path.basename(os.path.normpath(data_dir))
     filename = os.path.basename(fallback_path)
     return filename.replace("evaluation_results_", "").replace(".json", "")
+
+
+def get_nested(data, keys, default=None):
+    cur = data
+    for key in keys:
+        if not isinstance(cur, dict) or key not in cur:
+            return default
+        cur = cur[key]
+    return cur
 
 
 def extract_recurrent_metrics(data):
@@ -48,11 +65,56 @@ def extract_state_metrics(data):
     }
 
 
+def extract_latent_flow_metrics(data):
+    """Extract latent-flow metrics.
+
+    Comparable metrics use observed-space AEE, matching the recurrent extractor:
+    one_step/from_observed and rollout/from_observed/aggregate.
+
+    Additional latent-specific metrics are kept in evaluation_summary_all_metrics.csv:
+    - from_latent_probe
+    - from_state_head
+    """
+    return {
+        # Comparable observed-space metrics
+        "one_step_position_aee": data["one_step"]["from_observed"]["position_aee"],
+        "one_step_velocity_aee": data["one_step"]["from_observed"]["velocity_aee"],
+        "rollout_position_aee": data["rollout"]["from_observed"]["aggregate"]["position_aee"],
+        "rollout_velocity_aee": data["rollout"]["from_observed"]["aggregate"]["velocity_aee"],
+        "one_step_position_failures": data["one_step"]["from_observed"].get("position_failures"),
+        "one_step_velocity_failures": data["one_step"]["from_observed"].get("velocity_failures"),
+        "rollout_position_failures": data["rollout"]["from_observed"]["aggregate"].get("position_failures"),
+        "rollout_velocity_failures": data["rollout"]["from_observed"]["aggregate"].get("velocity_failures"),
+
+        # Latent probe one-step metrics
+        "latent_probe_one_step_position_r2": get_nested(data, ["one_step", "from_latent_probe", "position_r2"]),
+        "latent_probe_one_step_velocity_r2": get_nested(data, ["one_step", "from_latent_probe", "velocity_r2"]),
+        "latent_probe_one_step_position_aee": get_nested(data, ["one_step", "from_latent_probe", "position_aee"]),
+        "latent_probe_one_step_velocity_aee": get_nested(data, ["one_step", "from_latent_probe", "velocity_aee"]),
+        "latent_probe_rollout_position_aee": get_nested(data, ["rollout", "from_latent_probe", "aggregate", "position_aee"]),
+        "latent_probe_rollout_velocity_aee": get_nested(data, ["rollout", "from_latent_probe", "aggregate", "velocity_aee"]),
+
+        # State-head one-step metrics
+        "state_head_one_step_position_r2": get_nested(data, ["one_step", "from_state_head", "position_r2"]),
+        "state_head_one_step_velocity_r2": get_nested(data, ["one_step", "from_state_head", "velocity_r2"]),
+        "state_head_one_step_position_aee": get_nested(data, ["one_step", "from_state_head", "position_aee"]),
+        "state_head_one_step_velocity_aee": get_nested(data, ["one_step", "from_state_head", "velocity_aee"]),
+        "state_head_rollout_position_aee": get_nested(data, ["rollout", "from_state_head", "aggregate", "position_aee"]),
+        "state_head_rollout_velocity_aee": get_nested(data, ["rollout", "from_state_head", "aggregate", "velocity_aee"]),
+    }
+
+
 def write_csv(path, rows, fieldnames):
     with open(path, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def format_float(value):
+    if value is None:
+        return ""
+    return f"{value:.4f}"
 
 
 def write_markdown(path, rows):
@@ -65,8 +127,8 @@ def write_markdown(path, rows):
     for r in rows:
         lines.append(
             f"| {r['model_type']} | {r['model_run']} | {r['split']} | "
-            f"{r['one_step_position_aee']:.4f} | {r['one_step_velocity_aee']:.4f} | "
-            f"{r['rollout_position_aee']:.4f} | {r['rollout_velocity_aee']:.4f} |"
+            f"{format_float(r['one_step_position_aee'])} | {format_float(r['one_step_velocity_aee'])} | "
+            f"{format_float(r['rollout_position_aee'])} | {format_float(r['rollout_velocity_aee'])} |"
         )
 
     with open(path, "w") as f:
@@ -79,21 +141,25 @@ def main(args):
     configs = {
         "recurrent_id_v2": {
             "model_type": "recurrent",
-            "files": [
-                "physics/evaluation_results_test_id.json",
-                "physics/evaluation_results_test_ood_gravity.json",
-                "physics/evaluation_results_test_ood_velocity.json",
-                "physics/evaluation_results_test_ood_position.json",
-            ],
+            "files": SPLIT_FILES,
         },
         "state_mlp_v2": {
             "model_type": "state_mlp",
-            "files": [
-                "physics/evaluation_results_test_id.json",
-                "physics/evaluation_results_test_ood_gravity.json",
-                "physics/evaluation_results_test_ood_velocity.json",
-                "physics/evaluation_results_test_ood_position.json",
-            ],
+            "files": SPLIT_FILES,
+        },
+
+        # New g=-3 environment runs
+        "recurrent_g3": {
+            "model_type": "recurrent",
+            "files": SPLIT_FILES,
+        },
+        "state_mlp_g3": {
+            "model_type": "state_mlp",
+            "files": SPLIT_FILES,
+        },
+        "latent_flow_g3": {
+            "model_type": "latent_flow",
+            "files": SPLIT_FILES,
         },
     }
 
@@ -106,6 +172,7 @@ def main(args):
     model_order = {
         "recurrent": 0,
         "state_mlp": 1,
+        "latent_flow": 2,
     }
 
     all_rows = []
@@ -134,6 +201,8 @@ def main(args):
                 row.update(extract_recurrent_metrics(data))
             elif cfg["model_type"] == "state_mlp":
                 row.update(extract_state_metrics(data))
+            elif cfg["model_type"] == "latent_flow":
+                row.update(extract_latent_flow_metrics(data))
             else:
                 continue
 
@@ -151,8 +220,8 @@ def main(args):
                 }
             )
 
-    all_rows.sort(key=lambda r: (model_order.get(r["model_type"], 999), split_order.get(r["split"], 999), r["model_run"]))
-    comparable_rows.sort(key=lambda r: (model_order.get(r["model_type"], 999), split_order.get(r["split"], 999), r["model_run"]))
+    all_rows.sort(key=lambda r: (model_order.get(r["model_type"], 999), r["model_run"], split_order.get(r["split"], 999)))
+    comparable_rows.sort(key=lambda r: (model_order.get(r["model_type"], 999), r["model_run"], split_order.get(r["split"], 999)))
 
     if all_rows:
         all_fieldnames = sorted({k for row in all_rows for k in row.keys()})

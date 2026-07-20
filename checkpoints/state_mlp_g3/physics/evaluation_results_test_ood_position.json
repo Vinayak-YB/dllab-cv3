@@ -1,0 +1,89 @@
+{
+    "metadata": {
+        "model_dir": "checkpoints/state_mlp_g3",
+        "ckpt_name": "best.pt",
+        "data_dir": "data/bouncing_ball_g3/test_ood_position",
+        "probe_train_dir": null,
+        "split_mode": "legacy_internal_split",
+        "context": 5,
+        "batch_size": 256,
+        "rollout_steps": 10,
+        "seed": 42
+    },
+    "one_step": {
+        "position_aee": 0.5275363326072693,
+        "velocity_aee": 0.7629534006118774,
+        "position_r2": 0.9994264841079712,
+        "velocity_r2": 0.9402017593383789
+    },
+    "rollout": {
+        "aggregate": {
+            "position_aee": 4.457509994506836,
+            "velocity_aee": 2.316077709197998,
+            "position_r2": 0.9539144039154053,
+            "velocity_r2": 0.5040331482887268
+        },
+        "per_step": {
+            "1": {
+                "position_aee": 0.609990656375885,
+                "velocity_aee": 0.9552180171012878,
+                "position_r2": 0.9993890523910522,
+                "velocity_r2": 0.9389902353286743
+            },
+            "2": {
+                "position_aee": 1.2531168460845947,
+                "velocity_aee": 1.397911548614502,
+                "position_r2": 0.9956924915313721,
+                "velocity_r2": 0.8676561117172241
+            },
+            "3": {
+                "position_aee": 2.1722161769866943,
+                "velocity_aee": 1.7522413730621338,
+                "position_r2": 0.9854563474655151,
+                "velocity_r2": 0.7485069632530212
+            },
+            "4": {
+                "position_aee": 3.117604970932007,
+                "velocity_aee": 2.203160285949707,
+                "position_r2": 0.9707943797111511,
+                "velocity_r2": 0.5636975765228271
+            },
+            "5": {
+                "position_aee": 4.1245317459106445,
+                "velocity_aee": 2.286424160003662,
+                "position_r2": 0.9528959393501282,
+                "velocity_r2": 0.5130432844161987
+            },
+            "6": {
+                "position_aee": 4.928289413452148,
+                "velocity_aee": 2.6579020023345947,
+                "position_r2": 0.9443774819374084,
+                "velocity_r2": 0.20074310898780823
+            },
+            "7": {
+                "position_aee": 5.843603610992432,
+                "velocity_aee": 2.9464030265808105,
+                "position_r2": 0.9272962808609009,
+                "velocity_r2": -0.016455352306365967
+            },
+            "8": {
+                "position_aee": 6.647735118865967,
+                "velocity_aee": 2.8569815158843994,
+                "position_r2": 0.9189661741256714,
+                "velocity_r2": -0.10348951816558838
+            },
+            "9": {
+                "position_aee": 7.495442867279053,
+                "velocity_aee": 3.0049197673797607,
+                "position_r2": 0.9072942137718201,
+                "velocity_r2": -0.3311866521835327
+            },
+            "10": {
+                "position_aee": 8.382572174072266,
+                "velocity_aee": 3.0996172428131104,
+                "position_r2": 0.8836932182312012,
+                "velocity_r2": -0.5095049142837524
+            }
+        }
+    }
+}

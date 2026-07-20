@@ -150,6 +150,7 @@ def simulate_trajectory(
 
 def write_split(
     root_dir,
+    dataset_name,
     split_name,
     n_trajectories,
     gravity,
@@ -166,7 +167,7 @@ def write_split(
     ensure_clean_dir(split_dir, overwrite=overwrite)
 
     metadata = {
-        "dataset_name": "bouncing_ball",
+        "dataset_name": dataset_name,
         "split_name": split_name,
         "n_trajectories": n_trajectories,
         "gravity": gravity,
@@ -216,7 +217,7 @@ def write_split(
 def main(args):
     np.random.seed(args.seed)
 
-    root_dir = os.path.join(args.data_root, "bouncing_ball")
+    root_dir = os.path.join(args.data_root, args.dataset_name)
     os.makedirs(root_dir, exist_ok=True)
 
     if args.overwrite_id:
@@ -233,6 +234,7 @@ def main(args):
 
     write_split(
         root_dir=root_dir,
+        dataset_name=args.dataset_name,
         split_name="train",
         n_trajectories=args.n_train,
         gravity=args.id_gravity,
@@ -248,6 +250,7 @@ def main(args):
 
     write_split(
         root_dir=root_dir,
+        dataset_name=args.dataset_name,
         split_name="val",
         n_trajectories=args.n_val,
         gravity=args.id_gravity,
@@ -263,6 +266,7 @@ def main(args):
 
     write_split(
         root_dir=root_dir,
+        dataset_name=args.dataset_name,
         split_name="test_id",
         n_trajectories=args.n_test_id,
         gravity=args.id_gravity,
@@ -278,6 +282,7 @@ def main(args):
 
     write_split(
         root_dir=root_dir,
+        dataset_name=args.dataset_name,
         split_name="test_ood_gravity",
         n_trajectories=args.n_test_ood,
         gravity=args.ood_gravity,
@@ -293,6 +298,7 @@ def main(args):
 
     write_split(
         root_dir=root_dir,
+        dataset_name=args.dataset_name,
         split_name="test_ood_velocity",
         n_trajectories=args.n_test_ood,
         gravity=args.id_gravity,
@@ -308,6 +314,7 @@ def main(args):
 
     write_split(
         root_dir=root_dir,
+        dataset_name=args.dataset_name,
         split_name="test_ood_position",
         n_trajectories=args.n_test_ood,
         gravity=args.id_gravity,
@@ -330,6 +337,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument("--data_root", type=str, default="data")
+    parser.add_argument("--dataset_name", type=str, default="bouncing_ball")
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument("--width", type=int, default=128)

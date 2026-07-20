@@ -1,0 +1,89 @@
+{
+    "metadata": {
+        "model_dir": "checkpoints/state_mlp_g3",
+        "ckpt_name": "best.pt",
+        "data_dir": "data/bouncing_ball_g3/test_ood_gravity",
+        "probe_train_dir": null,
+        "split_mode": "legacy_internal_split",
+        "context": 5,
+        "batch_size": 256,
+        "rollout_steps": 10,
+        "seed": 42
+    },
+    "one_step": {
+        "position_aee": 1.3970392942428589,
+        "velocity_aee": 1.0612118244171143,
+        "position_r2": 0.9971932172775269,
+        "velocity_r2": 0.9270467758178711
+    },
+    "rollout": {
+        "aggregate": {
+            "position_aee": 8.435298919677734,
+            "velocity_aee": 3.1362547874450684,
+            "position_r2": 0.7554783225059509,
+            "velocity_r2": 0.36280977725982666
+        },
+        "per_step": {
+            "1": {
+                "position_aee": 1.427431344985962,
+                "velocity_aee": 1.108469009399414,
+                "position_r2": 0.9971619844436646,
+                "velocity_r2": 0.9300447702407837
+            },
+            "2": {
+                "position_aee": 2.840484857559204,
+                "velocity_aee": 1.6492072343826294,
+                "position_r2": 0.9860012531280518,
+                "velocity_r2": 0.8736002445220947
+            },
+            "3": {
+                "position_aee": 4.420061111450195,
+                "velocity_aee": 2.327991485595703,
+                "position_r2": 0.9598709344863892,
+                "velocity_r2": 0.7010934352874756
+            },
+            "4": {
+                "position_aee": 6.043733596801758,
+                "velocity_aee": 2.774935245513916,
+                "position_r2": 0.9117968082427979,
+                "velocity_r2": 0.5537809133529663
+            },
+            "5": {
+                "position_aee": 7.827218532562256,
+                "velocity_aee": 3.133455514907837,
+                "position_r2": 0.8319563269615173,
+                "velocity_r2": 0.41667506098747253
+            },
+            "6": {
+                "position_aee": 9.588656425476074,
+                "velocity_aee": 3.5054378509521484,
+                "position_r2": 0.7196002006530762,
+                "velocity_r2": 0.23629415035247803
+            },
+            "7": {
+                "position_aee": 11.25922679901123,
+                "velocity_aee": 3.9478273391723633,
+                "position_r2": 0.5890174508094788,
+                "velocity_r2": -0.05409911274909973
+            },
+            "8": {
+                "position_aee": 12.667512893676758,
+                "velocity_aee": 4.1538920402526855,
+                "position_r2": 0.45733174681663513,
+                "velocity_r2": -0.17091059684753418
+            },
+            "9": {
+                "position_aee": 13.873074531555176,
+                "velocity_aee": 4.374377727508545,
+                "position_r2": 0.34216591715812683,
+                "velocity_r2": -0.3742291331291199
+            },
+            "10": {
+                "position_aee": 14.405594825744629,
+                "velocity_aee": 4.386956691741943,
+                "position_r2": 0.3086460828781128,
+                "velocity_r2": -0.4473315477371216
+            }
+        }
+    }
+}
