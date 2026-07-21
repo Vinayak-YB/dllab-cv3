@@ -238,6 +238,9 @@ def main(args):
         state_loss_weight=args.state_loss_weight,
         recon_loss_weight=args.recon_loss_weight,
         motion_loss_weight=args.motion_loss_weight,
+        invert=args.invert,
+        generated_frame_loss_weight=args.generated_frame_loss_weight,
+        generation_loss_steps=args.generation_loss_steps,
     ).to(device)
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -341,6 +344,9 @@ if __name__ == "__main__":
 
     parser.add_argument("--grayscale", action="store_true")
     parser.add_argument("--invert", action="store_true")
+
+    parser.add_argument("--generated_frame_loss_weight", type=float, default=0.2)
+    parser.add_argument("--generation_loss_steps", type=int, default=5)
 
     parser.add_argument("--grad_clip", type=float, default=1.0)
     parser.add_argument("--num_workers", type=int, default=0)

@@ -157,7 +157,7 @@ def main(args):
             "model_type": "state_mlp",
             "files": SPLIT_FILES,
         },
-        "latent_flow_g3": {
+        "latent_flow_g3_genloss": {
             "model_type": "latent_flow",
             "files": SPLIT_FILES,
         },

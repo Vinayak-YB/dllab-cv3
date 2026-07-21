@@ -234,6 +234,9 @@ class LatentFlowVideoPredictor(nn.Module):
         state_loss_weight=0.1,
         recon_loss_weight=0.2,
         motion_loss_weight=0.1,
+        invert=False,
+        generated_frame_loss_weight=0.2,
+        generation_loss_steps=5,
     ):
         super().__init__()
 
@@ -245,6 +248,8 @@ class LatentFlowVideoPredictor(nn.Module):
         self.state_loss_weight = state_loss_weight
         self.recon_loss_weight = recon_loss_weight
         self.motion_loss_weight = motion_loss_weight
+        self.generated_frame_loss_weight = generated_frame_loss_weight
+        self.generation_loss_steps = generation_loss_steps
 
         self.encoder = FrameEncoder(
             input_channels=input_channels,
@@ -279,6 +284,8 @@ class LatentFlowVideoPredictor(nn.Module):
             latent_channels=latent_channels,
             time_dim=time_dim,
         )
+
+        self.invert = invert
 
     def encode_sequence(self, input_seq):
         b, t, c, h, w = input_seq.shape
@@ -334,15 +341,43 @@ class LatentFlowVideoPredictor(nn.Module):
         v_pred = self.flow_net(z_t, t, context_static, context_dynamic)
         flow_loss = F.mse_loss(v_pred, v_target)
 
+        # Extra generated-frame loss:
+        # train the actual inference path noise -> flow -> generated latent -> decoder.
+        # This helps avoid the mismatch where the decoder only sees clean z_target
+        # during training but receives flow-generated latents during prediction.
+        gen_steps = max(1, int(self.generation_loss_steps))
+        z_gen = noise
+        dt_gen = 1.0 / gen_steps
+
+        for i in range(gen_steps):
+            t_gen = torch.full(
+                (z_target.size(0),),
+                i / gen_steps,
+                device=z_target.device,
+            )
+            v_gen = self.flow_net(z_gen, t_gen, context_static, context_dynamic)
+            z_gen = z_gen + dt_gen * v_gen
+
+        pred_frame_from_flow = self.decode_latent(z_gen)
+
         # 2. Recon Loss e Motion Loss: Addestriamo il Decoder dal Latente Pulito
         recon_clean = self.decode_latent(z_target)
         
         fg_weight = 15.0
         weights = torch.ones_like(target_frame)
-        
-        weights[target_frame < 0.5] = fg_weight 
+
+        if self.invert:
+            # after invert: ball is bright, background is dark
+            foreground_mask = target_frame > 0.5
+        else:
+            # without invert: ball is dark, background is bright
+            foreground_mask = target_frame < 0.5
+
+        weights[foreground_mask] = fg_weight
         
         recon_loss = (weights * (recon_clean - target_frame) ** 2).mean()
+
+        generated_frame_loss = (weights * (pred_frame_from_flow - target_frame) ** 2).mean()
 
         last_context = context_frames[:, -1]
         pred_motion = recon_clean - last_context
@@ -362,6 +397,7 @@ class LatentFlowVideoPredictor(nn.Module):
             + self.recon_loss_weight * recon_loss
             + self.motion_loss_weight * motion_loss
             + self.state_loss_weight * state_loss
+            + self.generated_frame_loss_weight * generated_frame_loss
         )
 
         return {
@@ -370,7 +406,9 @@ class LatentFlowVideoPredictor(nn.Module):
             "recon_loss": recon_loss.detach(),
             "motion_loss": motion_loss.detach(),
             "state_loss": state_loss.detach(),
+            "generated_frame_loss": generated_frame_loss.detach(),
             "recon_frame": recon_clean.detach(),
+            "generated_frame": pred_frame_from_flow.detach(),
             "state_pred": state_pred.detach() if state_pred is not None else None,
         }
 
