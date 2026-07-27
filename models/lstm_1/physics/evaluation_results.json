@@ -1,0 +1,34 @@
+{
+    "frame": {
+        "from_observed": {
+            "position_aee": 1.0400756760385763,
+            "velocity_aee": 0.7845531789571313,
+            "position_total": 647,
+            "velocity_total": 646,
+            "position_failures": 1,
+            "velocity_failures": 2
+        },
+        "from_latent": {
+            "position_r2": 0.8840414419260613,
+            "velocity_r2": 0.5112291039724594,
+            "position_aee": 12.619139671454494,
+            "velocity_aee": 2.114748465385746
+        }
+    },
+    "trajectory": {
+        "from_observed": {
+            "position_aee": 35.022466978009355,
+            "velocity_aee": 18.953476643679736,
+            "position_total": 647,
+            "velocity_total": 646,
+            "position_failures": 69,
+            "velocity_failures": 77
+        },
+        "from_latent": {
+            "position_r2": 0.13616298952820732,
+            "velocity_r2": -0.1012916367699338,
+            "position_aee": 35.35527334926469,
+            "velocity_aee": 4.356729042495553
+        }
+    }
+}

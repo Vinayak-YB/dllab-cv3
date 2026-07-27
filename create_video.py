@@ -9,7 +9,7 @@ import argparse
 import json
 import os
 
-
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 def frame_prediction(model, val_loader, device):
     """
     Predict next frame given previous groundtruth frames.

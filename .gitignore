@@ -1,8 +1,6 @@
 physics-data*
 sim_data
 notebooks
+checkpoints
 logs
-models
-*.ipynb
-*.mp4
 __pycache__
