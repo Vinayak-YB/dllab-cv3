@@ -195,7 +195,11 @@ if __name__ == '__main__':
 
     if args.data_dir:
         n_trajectories = len(os.listdir(args.data_dir))
-        sequence_dirs = [os.path.join(args.data_dir, f'traj-{i}') for i in range(n_trajectories)]
+        sequence_dirs = sorted([
+                                os.path.join(args.data_dir, d) 
+                                for d in os.listdir(args.data_dir) 
+                                if os.path.isdir(os.path.join(args.data_dir, d)) and d.startswith('traj-')
+                            ])
         num_val_trajectories = int(len(sequence_dirs) * args.val_pct)
         train_dirs = sequence_dirs[:-num_val_trajectories]
         val_dirs = sequence_dirs[-num_val_trajectories:]
