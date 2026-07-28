@@ -368,11 +368,11 @@ class LatentFlowVideoPredictor(nn.Module):
         fg_weight = 15.0
         weights = torch.ones_like(target_frame)
 
-        # without invert: ball is dark, background is bright
+        # In the current main datasets, frames are already black background + bright ball.
         foreground_mask = target_frame > 0.5
 
         weights[foreground_mask] = fg_weight
-        
+
         recon_loss = (weights * (recon_clean - target_frame) ** 2).mean()
 
         generated_frame_loss = (weights * (pred_frame_from_flow - target_frame) ** 2).mean()
