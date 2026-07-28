@@ -15,13 +15,6 @@ RUNS = [
     {
         "environment": "baseline",
         "model_type": "lstm",
-        "run": "lstm_0",
-        "path": "models/lstm_0/physics/evaluation_results.json",
-        "format": "rnn_baseline",
-    },
-    {
-        "environment": "baseline",
-        "model_type": "lstm",
         "run": "lstm_1",
         "path": "models/lstm_1/physics/evaluation_results.json",
         "format": "rnn_baseline",
@@ -33,11 +26,12 @@ RUNS = [
         "path": "models/gru_0/physics/evaluation_results.json",
         "format": "rnn_baseline",
     },
+
     {
         "environment": "baseline",
         "model_type": "latent_flow",
-        "run": "latent_flow_baseline_genloss",
-        "path": "checkpoints/latent_flow_baseline_genloss/physics/evaluation_results_physics-data-v3.json",
+        "run": "latent_flow_baseline_genloss_e30",
+        "path": "checkpoints/latent_flow_baseline_genloss_e30/physics/evaluation_results_physics-data-v3.json",
         "format": "latent_flow",
     },
 
@@ -56,11 +50,12 @@ RUNS = [
         "path": "models/gru_2/physics/evaluation_results.json",
         "format": "rnn_baseline",
     },
+
     {
         "environment": "magnetic_wells",
         "model_type": "latent_flow",
-        "run": "latent_flow_magwells_genloss",
-        "path": "checkpoints/latent_flow_magwells_genloss/physics/evaluation_results_physics-data-magnetic_wells.json",
+        "run": "latent_flow_magwells_genloss_e30",
+        "path": "checkpoints/latent_flow_magwells_genloss_e30/physics/evaluation_results_physics-data-magnetic_wells.json",
         "format": "latent_flow",
     },
 ]
