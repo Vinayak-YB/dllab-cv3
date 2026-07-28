@@ -37,7 +37,6 @@ def load_model(model_dir, ckpt_name, device):
         state_loss_weight=args_dict.get("state_loss_weight", 0.1),
         recon_loss_weight=args_dict.get("recon_loss_weight", 0.2),
         motion_loss_weight=args_dict.get("motion_loss_weight", 0.1),
-        invert=args_dict.get("invert", False),
         generated_frame_loss_weight=args_dict.get("generated_frame_loss_weight", 0.0),
         generation_loss_steps=args_dict.get("generation_loss_steps", 5),
         state_dim=args_dict.get("state_dim", 4),
@@ -189,11 +188,9 @@ def main(args):
     model, ckpt_args = load_model(args.model_dir, args.ckpt_name, device)
 
     context = ckpt_args.get("context", args.context)
-    invert = ckpt_args.get("invert", args.invert)
     grayscale = ckpt_args.get("grayscale", args.grayscale)
 
     print(f"Context: {context}")
-    print(f"Invert: {invert}")
     print(f"Grayscale: {grayscale}")
     print(f"FM steps: {args.fm_steps}")
 
@@ -206,7 +203,6 @@ def main(args):
             rollout=1,
             stride=args.stride,
             grayscale=grayscale,
-            invert=invert,
             return_state=False,
         )
 
@@ -230,7 +226,6 @@ def main(args):
             sequence_dirs=sequence_dirs,
             context=context,
             grayscale=grayscale,
-            invert=invert,
             return_state=False,
         )
 
@@ -292,7 +287,6 @@ if __name__ == "__main__":
     parser.add_argument("--context", type=int, default=5)
 
     parser.add_argument("--grayscale", action="store_true")
-    parser.add_argument("--invert", action="store_true")
 
     parser.add_argument("--fm_steps", type=int, default=20)
     parser.add_argument("--stride", type=int, default=1)

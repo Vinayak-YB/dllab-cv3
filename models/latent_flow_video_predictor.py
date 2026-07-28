@@ -234,7 +234,6 @@ class LatentFlowVideoPredictor(nn.Module):
         state_loss_weight=0.1,
         recon_loss_weight=0.2,
         motion_loss_weight=0.1,
-        invert=False,
         generated_frame_loss_weight=0.2,
         generation_loss_steps=5,
         state_dim=4,
@@ -287,7 +286,6 @@ class LatentFlowVideoPredictor(nn.Module):
             time_dim=time_dim,
         )
 
-        self.invert = invert
 
     def encode_sequence(self, input_seq):
         b, t, c, h, w = input_seq.shape

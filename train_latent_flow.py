@@ -27,7 +27,6 @@ def build_dataloaders(args):
         rollout=1,
         stride=args.stride,
         grayscale=args.grayscale,
-        invert=args.invert,
         return_state=True,
     )
 
@@ -268,7 +267,6 @@ def main(args):
         state_loss_weight=args.state_loss_weight,
         recon_loss_weight=args.recon_loss_weight,
         motion_loss_weight=args.motion_loss_weight,
-        invert=args.invert,
         generated_frame_loss_weight=args.generated_frame_loss_weight,
         generation_loss_steps=args.generation_loss_steps,
         state_dim=state_dim,
@@ -376,7 +374,6 @@ if __name__ == "__main__":
     parser.add_argument("--state_loss_weight", type=float, default=0.1)
 
     parser.add_argument("--grayscale", action="store_true")
-    parser.add_argument("--invert", action="store_true")
 
     parser.add_argument("--generated_frame_loss_weight", type=float, default=0.2)
     parser.add_argument("--generation_loss_steps", type=int, default=5)

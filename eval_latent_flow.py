@@ -49,7 +49,6 @@ def load_model(model_dir, ckpt_name, device):
         state_loss_weight=args_dict.get("state_loss_weight", 0.1),
         recon_loss_weight=args_dict.get("recon_loss_weight", 0.2),
         motion_loss_weight=args_dict.get("motion_loss_weight", 0.1),
-        invert=args_dict.get("invert", False),
         generated_frame_loss_weight=args_dict.get("generated_frame_loss_weight", 0.0),
         generation_loss_steps=args_dict.get("generation_loss_steps", 5),
         state_dim=args_dict.get("state_dim", 4),
@@ -72,7 +71,7 @@ def split_sequence_dirs(sequence_dirs, val_ratio=0.1, seed=42):
 
 
 class FixedRolloutDataset(Dataset):
-    def __init__(self, sequence_dirs, context=5, rollout_steps=10, grayscale=True, invert=False, return_state=True,
+    def __init__(self, sequence_dirs, context=5, rollout_steps=10, grayscale=True, return_state=True,
                  stride=1):
         self.samples = []
 
@@ -82,7 +81,6 @@ class FixedRolloutDataset(Dataset):
             rollout=rollout_steps,
             stride=stride,
             grayscale=grayscale,
-            invert=invert,
             return_state=return_state,
         )
 
@@ -116,7 +114,7 @@ def _to_single_channel(frame_tensor):
 
 
 def estimate_ball_center_robust(
-        frame_tensor, invert=False, threshold=0.5, min_mass=3,
+        frame_tensor, threshold=0.5, min_mass=3,
         fallback_thresholds=(0.4, 0.3, 0.2, 0.15, 0.1, 0.05),
         use_topk_fallback=True, topk_ratio=0.01, debug=False,
 ):
@@ -128,7 +126,6 @@ def estimate_ball_center_robust(
     centers = estimate_object_centers_robust(
         frame_tensor=frame_tensor,
         num_objects=1,
-        invert=invert,
         threshold=threshold,
         min_mass=min_mass,
         fallback_thresholds=fallback_thresholds,
@@ -254,7 +251,7 @@ def _topk_fallback_single_or_two(frame, num_objects, topk_ratio, min_mass):
 
 
 def estimate_object_centers_robust(
-        frame_tensor, num_objects=1, invert=False, threshold=0.5, min_mass=3,
+        frame_tensor, num_objects=1, threshold=0.5, min_mass=3,
         fallback_thresholds=(0.4, 0.3, 0.2, 0.15, 0.1, 0.05),
         use_topk_fallback=True, topk_ratio=0.01, debug=False,
 ):
@@ -268,8 +265,7 @@ def estimate_object_centers_robust(
         Tensor of shape (num_objects, 2), with coordinates [x, y].
 
     The current main datasets use dark background + bright ball(s), so this
-    extractor always looks for bright foreground pixels. The invert argument is
-    kept only for compatibility with older call sites.
+    extractor always looks for bright foreground pixels.
     """
     if num_objects not in (1, 2):
         raise ValueError(f"Only num_objects=1 or num_objects=2 are supported, got {num_objects}")
@@ -748,27 +744,25 @@ def physics_from_observed_frames_rollout(
     }
 
 
-def build_frame_loader(sequence_dirs, context, invert, grayscale, num_workers, batch_size=64, shuffle=False, stride=1):
+def build_frame_loader(sequence_dirs, context, grayscale, num_workers, batch_size=64, shuffle=False, stride=1):
     dataset = FramePredictionDataset(
         sequence_dirs=sequence_dirs,
         context=context,
         rollout=1,
         stride=stride,
         grayscale=grayscale,
-        invert=invert,
         return_state=True
     )
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
 
-def build_rollout_loader(sequence_dirs, context, invert, grayscale, rollout_steps, num_workers, batch_size=32,
+def build_rollout_loader(sequence_dirs, context, grayscale, rollout_steps, num_workers, batch_size=32,
                          stride=5):
     dataset = FixedRolloutDataset(
         sequence_dirs=sequence_dirs,
         context=context,
         rollout_steps=rollout_steps,
         grayscale=grayscale,
-        invert=invert,
         return_state=True,
         stride=stride
     )
@@ -797,7 +791,6 @@ def main(args):
 
     model, ckpt_args = load_model(args.model_dir, args.ckpt_name, device)
     context = ckpt_args.get("context", args.context)
-    invert = ckpt_args.get("invert", args.invert)
     grayscale = ckpt_args.get("grayscale", True)
 
     probe_train_dirs, test_dirs, split_mode = resolve_eval_dirs(args)
@@ -810,7 +803,7 @@ def main(args):
 
     # 1. Estrarre i Probe dal Train Set
     probe_train_loader = build_frame_loader(
-        sequence_dirs=probe_train_dirs, context=context, invert=invert, grayscale=grayscale,
+        sequence_dirs=probe_train_dirs, context=context, grayscale=grayscale,
         num_workers=args.num_workers, batch_size=args.frame_batch_size, shuffle=True, stride=args.eval_stride
     )
 
@@ -820,7 +813,7 @@ def main(args):
 
     # 2. Valutare il One-Step sul Test Set
     test_loader = build_frame_loader(
-        sequence_dirs=test_dirs, context=context, invert=invert, grayscale=grayscale,
+        sequence_dirs=test_dirs, context=context, grayscale=grayscale,
         num_workers=args.num_workers, batch_size=args.frame_batch_size, shuffle=False, stride=args.eval_stride
     )
 
@@ -834,7 +827,7 @@ def main(args):
     print(f"Observed extractor num_objects: {num_objects}")
 
     kwargs = {
-        "threshold": args.threshold, "invert": invert, "min_mass": args.min_mass,
+        "threshold": args.threshold, "min_mass": args.min_mass,
         "fallback_thresholds": tuple(args.fallback_thresholds),
         "use_topk_fallback": not args.disable_topk_fallback,
         "topk_ratio": args.topk_ratio, "debug": args.debug_threshold
@@ -856,7 +849,7 @@ def main(args):
 
     print("\n=== Evaluating mode: rollout ===")
     rollout_test_loader = build_rollout_loader(
-        sequence_dirs=test_dirs, context=context, invert=invert, grayscale=grayscale,
+        sequence_dirs=test_dirs, context=context, grayscale=grayscale,
         rollout_steps=args.rollout_steps, num_workers=args.num_workers,
         batch_size=args.rollout_batch_size, stride=args.eval_stride
     )
@@ -880,7 +873,7 @@ def main(args):
         "metadata": {
             "model_dir": args.model_dir, "ckpt_name": args.ckpt_name, "data_dir": args.data_dir,
             "probe_train_dir": args.probe_train_dir, "split_mode": split_mode, "context": context,
-            "invert": invert, "rollout_steps": args.rollout_steps, "fm_steps": args.fm_steps,
+            "rollout_steps": args.rollout_steps, "fm_steps": args.fm_steps,
             "eval_stride": args.eval_stride, "num_objects": num_objects
         },
         "one_step": {
@@ -921,7 +914,6 @@ if __name__ == "__main__":
                         help="Observed-space extractor mode. Use 1 for baseline/magnetic_wells, 2 for billiard. "
                              "Default: infer from state shape.")
 
-    parser.add_argument("--invert", action="store_true")
     parser.add_argument("--rollout_steps", type=int, default=10)
     parser.add_argument("--fm_steps", type=int, default=20)
     parser.add_argument("--eval_stride", type=int, default=5, help="Stride per evitare RAM OOM")
