@@ -89,6 +89,7 @@ def train_one_epoch(model, dataloader, optimizer, device, args):
     running_recon_loss = 0.0
     running_motion_loss = 0.0
     running_state_loss = 0.0
+    running_generated_frame_loss = 0.0
 
     pbar = tqdm(dataloader, desc="Training", leave=False)
 
@@ -122,6 +123,7 @@ def train_one_epoch(model, dataloader, optimizer, device, args):
         running_recon_loss += losses["recon_loss"].item()
         running_motion_loss += losses["motion_loss"].item()
         running_state_loss += losses["state_loss"].item()
+        running_generated_frame_loss += losses.get("generated_frame_loss", torch.tensor(0.0)).item()
 
         pbar.set_postfix({
             "loss": f"{loss.item():.5f}",
@@ -129,6 +131,7 @@ def train_one_epoch(model, dataloader, optimizer, device, args):
             "recon": f"{losses['recon_loss'].item():.5f}",
             "motion": f"{losses['motion_loss'].item():.5f}",
             "state": f"{losses['state_loss'].item():.5f}",
+            "gen": f"{losses.get('generated_frame_loss', torch.tensor(0.0)).item():.5f}",
         })
 
     n = len(dataloader)
@@ -138,6 +141,7 @@ def train_one_epoch(model, dataloader, optimizer, device, args):
         "recon_loss": running_recon_loss / n,
         "motion_loss": running_motion_loss / n,
         "state_loss": running_state_loss / n,
+        "generated_frame_loss": running_generated_frame_loss / n,
     }
 
 
@@ -150,6 +154,7 @@ def validate_one_epoch(model, dataloader, device, args):
     running_recon_loss = 0.0
     running_motion_loss = 0.0
     running_state_loss = 0.0
+    running_generated_frame_loss = 0.0
 
     pbar = tqdm(dataloader, desc="Validation", leave=False)
 
@@ -174,6 +179,7 @@ def validate_one_epoch(model, dataloader, device, args):
         running_recon_loss += losses["recon_loss"].item()
         running_motion_loss += losses["motion_loss"].item()
         running_state_loss += losses["state_loss"].item()
+        running_generated_frame_loss += losses.get("generated_frame_loss", torch.tensor(0.0)).item()
 
         pbar.set_postfix({
             "val_loss": f"{loss.item():.5f}",
@@ -181,6 +187,7 @@ def validate_one_epoch(model, dataloader, device, args):
             "val_recon": f"{losses['recon_loss'].item():.5f}",
             "val_motion": f"{losses['motion_loss'].item():.5f}",
             "val_state": f"{losses['state_loss'].item():.5f}",
+            "val_gen": f"{losses.get('generated_frame_loss', torch.tensor(0.0)).item():.5f}",
         })
 
     n = len(dataloader)
@@ -190,6 +197,7 @@ def validate_one_epoch(model, dataloader, device, args):
         "recon_loss": running_recon_loss / n,
         "motion_loss": running_motion_loss / n,
         "state_loss": running_state_loss / n,
+        "generated_frame_loss": running_generated_frame_loss / n,
     }
 
 
@@ -280,14 +288,16 @@ def main(args):
             f"Flow: {train_metrics['flow_loss']:.6f} | "
             f"Recon: {train_metrics['recon_loss']:.6f} | "
             f"Motion: {train_metrics['motion_loss']:.6f} | "
-            f"State: {train_metrics['state_loss']:.6f}"
+            f"State: {train_metrics['state_loss']:.6f} | "
+            f"GenFrame: {train_metrics.get('generated_frame_loss', 0.0):.6f}"
         )
         print(
             f"Val Loss:   {val_metrics['loss']:.6f} | "
             f"Flow: {val_metrics['flow_loss']:.6f} | "
             f"Recon: {val_metrics['recon_loss']:.6f} | "
             f"Motion: {val_metrics['motion_loss']:.6f} | "
-            f"State: {val_metrics['state_loss']:.6f}"
+            f"State: {val_metrics['state_loss']:.6f} | "
+            f"GenFrame: {val_metrics.get('generated_frame_loss', 0.0):.6f}"
         )
 
         save_checkpoint(
