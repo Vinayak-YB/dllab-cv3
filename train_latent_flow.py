@@ -71,14 +71,26 @@ def build_dataloaders(args):
 
 def build_target_state(target_positions, target_velocities):
     """
-    target_positions: (B, 1, 2)
-    target_velocities: (B, 1, 2)
-    returns: (B, 4) = [x, y, vx, vy]
+    Build a flat physical-state target for one-step prediction.
+
+    Single-ball data:
+        target_positions:  (B, 1, 2)
+        target_velocities: (B, 1, 2)
+        returns:           (B, 4) = [x, y, vx, vy]
+
+    Multi-ball data, e.g. billiard with two balls:
+        target_positions:  (B, 1, N, 2)
+        target_velocities: (B, 1, N, 2)
+        returns:           (B, 4*N)
+                           [x1, y1, ..., xN, yN, vx1, vy1, ..., vxN, vyN]
     """
     pos_next = target_positions[:, 0]
     vel_next = target_velocities[:, 0]
-    target_state = torch.cat([pos_next, vel_next], dim=1)
-    return target_state
+
+    pos_flat = pos_next.reshape(pos_next.shape[0], -1)
+    vel_flat = vel_next.reshape(vel_next.shape[0], -1)
+
+    return torch.cat([pos_flat, vel_flat], dim=1)
 
 
 def train_one_epoch(model, dataloader, optimizer, device, args):
@@ -231,6 +243,16 @@ def main(args):
 
     train_loader, val_loader = build_dataloaders(args)
 
+    # Single ball -> 4; billiard/two balls -> 8.
+    sample_input, sample_target, sample_positions, sample_velocities = train_loader.dataset[0]
+    sample_state = build_target_state(
+        sample_positions.unsqueeze(0),
+        sample_velocities.unsqueeze(0),
+    )
+    state_dim = sample_state.shape[1]
+    args.state_dim = state_dim
+    print(f"Detected state_dim: {state_dim}")
+
     print(f"Train batches: {len(train_loader)}")
     print(f"Val batches:   {len(val_loader)}")
 
@@ -249,6 +271,7 @@ def main(args):
         invert=args.invert,
         generated_frame_loss_weight=args.generated_frame_loss_weight,
         generation_loss_steps=args.generation_loss_steps,
+        state_dim=state_dim,
     ).to(device)
 
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)

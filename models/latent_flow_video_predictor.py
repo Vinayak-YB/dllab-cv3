@@ -67,8 +67,8 @@ class FrameEncoder(nn.Module):
             nn.Conv2d(base_channels * 2, latent_channels, kernel_size=3, padding=1),
             nn.SiLU(),
             ResidualBlock(latent_channels),
-            
-            # Normalizzazione essenziale per il Flow Matching: 
+
+            # Normalizzazione essenziale per il Flow Matching:
             # compatibilità con rumore Gaussiano N(0, 1)
             nn.GroupNorm(8, latent_channels),
             nn.Tanh()
@@ -237,6 +237,7 @@ class LatentFlowVideoPredictor(nn.Module):
         invert=False,
         generated_frame_loss_weight=0.2,
         generation_loss_steps=5,
+        state_dim=4,
     ):
         super().__init__()
 
@@ -250,6 +251,7 @@ class LatentFlowVideoPredictor(nn.Module):
         self.motion_loss_weight = motion_loss_weight
         self.generated_frame_loss_weight = generated_frame_loss_weight
         self.generation_loss_steps = generation_loss_steps
+        self.state_dim = state_dim
 
         self.encoder = FrameEncoder(
             input_channels=input_channels,
@@ -277,7 +279,7 @@ class LatentFlowVideoPredictor(nn.Module):
         self.state_head = StateHead(
             latent_channels=latent_channels,
             hidden_dim=128,
-            out_dim=4,
+            out_dim=state_dim,
         )
 
         self.flow_net = FlowMatchingNet(
@@ -362,7 +364,7 @@ class LatentFlowVideoPredictor(nn.Module):
 
         # 2. Recon Loss e Motion Loss: Addestriamo il Decoder dal Latente Pulito
         recon_clean = self.decode_latent(z_target)
-        
+
         fg_weight = 15.0
         weights = torch.ones_like(target_frame)
 
