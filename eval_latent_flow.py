@@ -52,6 +52,7 @@ def load_model(model_dir, ckpt_name, device):
         invert=args_dict.get("invert", False),
         generated_frame_loss_weight=args_dict.get("generated_frame_loss_weight", 0.0),
         generation_loss_steps=args_dict.get("generation_loss_steps", 5),
+        state_dim=args_dict.get("state_dim", 4),
     ).to(device)
 
     model.load_state_dict(ckpt["model_state_dict"])
@@ -71,7 +72,8 @@ def split_sequence_dirs(sequence_dirs, val_ratio=0.1, seed=42):
 
 
 class FixedRolloutDataset(Dataset):
-    def __init__(self, sequence_dirs, context=5, rollout_steps=10, grayscale=True, invert=False, return_state=True, stride=1):
+    def __init__(self, sequence_dirs, context=5, rollout_steps=10, grayscale=True, invert=False, return_state=True,
+                 stride=1):
         self.samples = []
 
         base_dataset = FramePredictionDataset(
@@ -88,7 +90,8 @@ class FixedRolloutDataset(Dataset):
             sample = base_dataset[i]
             if return_state:
                 input_seq, target_seq, pos, vel = sample
-                if target_seq.shape[0] == rollout_steps and pos.shape[0] == rollout_steps and vel.shape[0] == rollout_steps:
+                if target_seq.shape[0] == rollout_steps and pos.shape[0] == rollout_steps and vel.shape[
+                    0] == rollout_steps:
                     self.samples.append(sample)
             else:
                 input_seq, target_seq = sample
@@ -113,9 +116,9 @@ def _to_single_channel(frame_tensor):
 
 
 def estimate_ball_center_robust(
-    frame_tensor, invert=False, threshold=0.5, min_mass=3,
-    fallback_thresholds=(0.4, 0.3, 0.2, 0.15, 0.1, 0.05),
-    use_topk_fallback=True, topk_ratio=0.01, debug=False,
+        frame_tensor, invert=False, threshold=0.5, min_mass=3,
+        fallback_thresholds=(0.4, 0.3, 0.2, 0.15, 0.1, 0.05),
+        use_topk_fallback=True, topk_ratio=0.01, debug=False,
 ):
     frame = _to_single_channel(frame_tensor).float().clamp(0, 1)
     thresholds = [threshold] + [t for t in fallback_thresholds if t != threshold]
@@ -266,42 +269,170 @@ def rollout_prediction(model, dataloader, device, rollout_steps, fm_steps):
     return target_frames, predicted_frames, latent_states, state_preds, positions, velocities, last_context_frames
 
 
+def _flatten_state_tensor(x):
+    """
+    Flatten physical state dimensions while preserving batch/time axes.
+
+    One-step single ball:   (B, 2)       -> (B, 2)
+    One-step multi ball:    (B, N, 2)    -> (B, 2*N)
+    Rollout single ball:    (B, H, 2)    -> (B, H, 2)
+    Rollout multi ball:     (B, H, N, 2) -> (B, H, 2*N)
+    """
+    if x is None:
+        return None
+    if x.dim() <= 2:
+        return x
+    if x.dim() == 3:
+        # Ambiguous case:
+        #   one-step multi-ball: (B, N, 2)
+        #   rollout single-ball: (B, H, 2)
+        # The caller decides by context.
+        return x
+    return x.reshape(*x.shape[:2], -1)
+
+
+def _flatten_one_step_state(x):
+    if x is None:
+        return None
+    return x.reshape(x.shape[0], -1)
+
+
+def _flatten_rollout_state(x):
+    if x is None:
+        return None
+    return x.reshape(x.shape[0], x.shape[1], -1)
+
+
 def compute_state_metrics_one_step(state_preds, positions, velocities):
-    pred_pos = state_preds[:, :2]
-    pred_vel = state_preds[:, 2:]
+    positions_flat = _flatten_one_step_state(positions)
+    velocities_flat = _flatten_one_step_state(velocities)
+
+    pos_dim = positions_flat.shape[1]
+    vel_dim = velocities_flat.shape[1]
+
+    pred_pos = state_preds[:, :pos_dim]
+    pred_vel = state_preds[:, pos_dim:pos_dim + vel_dim]
+
     return {
-        "position_r2": r2_score(positions.numpy(), pred_pos.numpy()),
-        "velocity_r2": r2_score(velocities.numpy(), pred_vel.numpy()),
-        "position_aee": torch.norm(pred_pos - positions, dim=1).mean().item(),
-        "velocity_aee": torch.norm(pred_vel - velocities, dim=1).mean().item(),
+        "position_r2": r2_score(positions_flat.numpy(), pred_pos.numpy()),
+        "velocity_r2": r2_score(velocities_flat.numpy(), pred_vel.numpy()),
+        "position_aee": torch.norm(pred_pos - positions_flat, dim=1).mean().item(),
+        "velocity_aee": torch.norm(pred_vel - velocities_flat, dim=1).mean().item(),
     }
 
 
 def compute_state_metrics_rollout(state_preds, positions, velocities):
-    pred_pos = state_preds[:, :, :2]
-    pred_vel = state_preds[:, :, 2:]
+    positions_flat = _flatten_rollout_state(positions)
+    velocities_flat = _flatten_rollout_state(velocities)
+
+    pos_dim = positions_flat.shape[2]
+    vel_dim = velocities_flat.shape[2]
+
+    pred_pos = state_preds[:, :, :pos_dim]
+    pred_vel = state_preds[:, :, pos_dim:pos_dim + vel_dim]
+
     per_step = {}
     for step in range(state_preds.shape[1]):
         step_metrics = {
-            "position_r2": r2_score(positions[:, step].numpy(), pred_pos[:, step].numpy()),
-            "position_aee": torch.norm(pred_pos[:, step] - positions[:, step], dim=1).mean().item(),
+            "position_r2": r2_score(positions_flat[:, step].numpy(), pred_pos[:, step].numpy()),
+            "position_aee": torch.norm(pred_pos[:, step] - positions_flat[:, step], dim=1).mean().item(),
         }
-        if step < velocities.shape[1]:
-            step_metrics["velocity_r2"] = r2_score(velocities[:, step].numpy(), pred_vel[:, step].numpy())
-            step_metrics["velocity_aee"] = torch.norm(pred_vel[:, step] - velocities[:, step], dim=1).mean().item()
+        if step < velocities_flat.shape[1]:
+            step_metrics["velocity_r2"] = r2_score(velocities_flat[:, step].numpy(), pred_vel[:, step].numpy())
+            step_metrics["velocity_aee"] = torch.norm(pred_vel[:, step] - velocities_flat[:, step], dim=1).mean().item()
         per_step[str(step + 1)] = step_metrics
 
     return {
         "aggregate": {
-            "position_aee": torch.norm(pred_pos - positions, dim=2).mean().item(),
-            "velocity_aee": torch.norm(pred_vel - velocities, dim=2).mean().item(),
+            "position_aee": torch.norm(pred_pos - positions_flat, dim=2).mean().item(),
+            "velocity_aee": torch.norm(pred_vel - velocities_flat, dim=2).mean().item(),
         },
         "per_step": per_step,
     }
 
 
+def physics_from_latent_probe(train_hidden, train_pos, train_vel, test_hidden, test_pos, test_vel):
+    X_train = train_hidden.reshape(train_hidden.shape[0], -1).numpy()
+    X_test = test_hidden.reshape(test_hidden.shape[0], -1).numpy()
+
+    y_train_pos = _flatten_one_step_state(train_pos).numpy()
+    y_train_vel = _flatten_one_step_state(train_vel).numpy()
+    y_test_pos = _flatten_one_step_state(test_pos).numpy()
+    y_test_vel = _flatten_one_step_state(test_vel).numpy()
+
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    reg_pos = LinearRegression().fit(X_train, y_train_pos)
+    reg_vel = LinearRegression().fit(X_train, y_train_vel)
+
+    y_pred_pos = reg_pos.predict(X_test)
+    y_pred_vel = reg_vel.predict(X_test)
+
+    return {
+        "position_r2": r2_score(y_test_pos, y_pred_pos),
+        "velocity_r2": r2_score(y_test_vel, y_pred_vel),
+        "position_aee": torch.norm(torch.tensor(y_pred_pos) - torch.tensor(y_test_pos), dim=1).mean().item(),
+        "velocity_aee": torch.norm(torch.tensor(y_pred_vel) - torch.tensor(y_test_vel), dim=1).mean().item(),
+    }
+
+
+def physics_from_latent_probe_rollout(train_hidden, train_pos, train_vel, test_hidden, test_pos, test_vel):
+    X_train = train_hidden.reshape(train_hidden.shape[0], -1).numpy()
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+
+    train_pos_flat = _flatten_one_step_state(train_pos)
+    train_vel_flat = _flatten_one_step_state(train_vel)
+    test_pos_flat = _flatten_rollout_state(test_pos)
+    test_vel_flat = _flatten_rollout_state(test_vel)
+
+    reg_pos = LinearRegression().fit(X_train, train_pos_flat.numpy())
+    reg_vel = LinearRegression().fit(X_train, train_vel_flat.numpy())
+
+    h = test_hidden.shape[1]
+    per_step = {}
+    pred_pos_all, pred_vel_all = [], []
+
+    for step in range(h):
+        X_test = scaler.transform(test_hidden[:, step].reshape(test_hidden.shape[0], -1).numpy())
+
+        y_pred_pos = reg_pos.predict(X_test)
+        pred_pos_all.append(torch.tensor(y_pred_pos))
+        y_test_pos = test_pos_flat[:, step].numpy()
+
+        metrics = {
+            "position_r2": r2_score(y_test_pos, y_pred_pos),
+            "position_aee": torch.norm(torch.tensor(y_pred_pos) - torch.tensor(y_test_pos), dim=1).mean().item(),
+        }
+
+        if step < test_vel_flat.shape[1]:
+            y_pred_vel = reg_vel.predict(X_test)
+            pred_vel_all.append(torch.tensor(y_pred_vel))
+            y_test_vel = test_vel_flat[:, step].numpy()
+
+            metrics["velocity_r2"] = r2_score(y_test_vel, y_pred_vel)
+            metrics["velocity_aee"] = torch.norm(torch.tensor(y_pred_vel) - torch.tensor(y_test_vel),
+                                                 dim=1).mean().item()
+
+        per_step[str(step + 1)] = metrics
+
+    pred_pos_all = torch.stack(pred_pos_all, dim=1)
+    results = {
+        "aggregate": {"position_aee": torch.norm(pred_pos_all - test_pos_flat, dim=2).mean().item()},
+        "per_step": per_step,
+    }
+
+    if pred_vel_all:
+        pred_vel_all = torch.stack(pred_vel_all, dim=1)
+        results["aggregate"]["velocity_aee"] = torch.norm(pred_vel_all - test_vel_flat, dim=2).mean().item()
+
+    return results
+
+
 def physics_from_observed_frames_one_step(
-    target_frames, predicted_frames, last_context_frames, **kwargs
+        target_frames, predicted_frames, last_context_frames, **kwargs
 ):
     pred_positions = extract_positions_from_frames_robust(predicted_frames, **kwargs)
     tgt_positions = extract_positions_from_frames_robust(target_frames, **kwargs)
@@ -323,7 +454,7 @@ def physics_from_observed_frames_one_step(
 
 
 def physics_from_observed_frames_rollout(
-    target_frames, predicted_frames, **kwargs
+        target_frames, predicted_frames, **kwargs
 ):
     _, h = target_frames.shape[:2]
     per_step = {}
@@ -332,7 +463,7 @@ def physics_from_observed_frames_rollout(
     for step in range(h):
         pred_positions = extract_positions_from_frames_robust(predicted_frames[:, step], **kwargs)
         tgt_positions = extract_positions_from_frames_robust(target_frames[:, step], **kwargs)
-        
+
         position_dists = torch.norm(pred_positions - tgt_positions, dim=1)
         all_pred_pos.append(pred_positions)
         all_tgt_pos.append(tgt_positions)
@@ -370,78 +501,6 @@ def physics_from_observed_frames_rollout(
     }
 
 
-def physics_from_latent_probe(train_hidden, train_pos, train_vel, test_hidden, test_pos, test_vel):
-    X_train = train_hidden.reshape(train_hidden.shape[0], -1).numpy()
-    X_test = test_hidden.reshape(test_hidden.shape[0], -1).numpy()
-
-    y_train_pos, y_train_vel = train_pos.numpy(), train_vel.numpy()
-    y_test_pos, y_test_vel = test_pos.numpy(), test_vel.numpy()
-
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
-
-    reg_pos = LinearRegression().fit(X_train, y_train_pos)
-    reg_vel = LinearRegression().fit(X_train, y_train_vel)
-
-    y_pred_pos = reg_pos.predict(X_test)
-    y_pred_vel = reg_vel.predict(X_test)
-
-    return {
-        "position_r2": r2_score(y_test_pos, y_pred_pos),
-        "velocity_r2": r2_score(y_test_vel, y_pred_vel),
-        "position_aee": torch.norm(torch.tensor(y_pred_pos) - torch.tensor(y_test_pos), dim=1).mean().item(),
-        "velocity_aee": torch.norm(torch.tensor(y_pred_vel) - torch.tensor(y_test_vel), dim=1).mean().item(),
-    }
-
-
-def physics_from_latent_probe_rollout(train_hidden, train_pos, train_vel, test_hidden, test_pos, test_vel):
-    X_train = train_hidden.reshape(train_hidden.shape[0], -1).numpy()
-    scaler = StandardScaler()
-    X_train = scaler.fit_transform(X_train)
-
-    reg_pos = LinearRegression().fit(X_train, train_pos.numpy())
-    reg_vel = LinearRegression().fit(X_train, train_vel.numpy())
-
-    h = test_hidden.shape[1]
-    per_step = {}
-    pred_pos_all, pred_vel_all = [], []
-
-    for step in range(h):
-        X_test = scaler.transform(test_hidden[:, step].reshape(test_hidden.shape[0], -1).numpy())
-        
-        y_pred_pos = reg_pos.predict(X_test)
-        pred_pos_all.append(torch.tensor(y_pred_pos))
-        y_test_pos = test_pos[:, step].numpy()
-
-        metrics = {
-            "position_r2": r2_score(y_test_pos, y_pred_pos),
-            "position_aee": torch.norm(torch.tensor(y_pred_pos) - torch.tensor(y_test_pos), dim=1).mean().item(),
-        }
-
-        if step < test_vel.shape[1]:
-            y_pred_vel = reg_vel.predict(X_test)
-            pred_vel_all.append(torch.tensor(y_pred_vel))
-            y_test_vel = test_vel[:, step].numpy()
-            
-            metrics["velocity_r2"] = r2_score(y_test_vel, y_pred_vel)
-            metrics["velocity_aee"] = torch.norm(torch.tensor(y_pred_vel) - torch.tensor(y_test_vel), dim=1).mean().item()
-
-        per_step[str(step + 1)] = metrics
-
-    pred_pos_all = torch.stack(pred_pos_all, dim=1)
-    results = {
-        "aggregate": {"position_aee": torch.norm(pred_pos_all - test_pos, dim=2).mean().item()},
-        "per_step": per_step,
-    }
-
-    if pred_vel_all:
-        pred_vel_all = torch.stack(pred_vel_all, dim=1)
-        results["aggregate"]["velocity_aee"] = torch.norm(pred_vel_all - test_vel, dim=2).mean().item()
-
-    return results
-
-
 def build_frame_loader(sequence_dirs, context, invert, grayscale, num_workers, batch_size=64, shuffle=False, stride=1):
     dataset = FramePredictionDataset(
         sequence_dirs=sequence_dirs,
@@ -455,7 +514,8 @@ def build_frame_loader(sequence_dirs, context, invert, grayscale, num_workers, b
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
 
-def build_rollout_loader(sequence_dirs, context, invert, grayscale, rollout_steps, num_workers, batch_size=32, stride=5):
+def build_rollout_loader(sequence_dirs, context, invert, grayscale, rollout_steps, num_workers, batch_size=32,
+                         stride=5):
     dataset = FixedRolloutDataset(
         sequence_dirs=sequence_dirs,
         context=context,
@@ -500,13 +560,13 @@ def main(args):
     print(f"Test trajectories:        {len(test_dirs)}")
 
     print("\n=== Evaluating mode: one_step ===")
-    
+
     # 1. Estrarre i Probe dal Train Set
     probe_train_loader = build_frame_loader(
         sequence_dirs=probe_train_dirs, context=context, invert=invert, grayscale=grayscale,
         num_workers=args.num_workers, batch_size=args.frame_batch_size, shuffle=True, stride=args.eval_stride
     )
-    
+
     _, _, train_hidden_states, train_state_preds, train_positions, train_velocities, _ = frame_prediction(
         model, probe_train_loader, device, args.fm_steps, extract_only=True
     )
@@ -538,14 +598,14 @@ def main(args):
 
     print("Observed physics:")
     print(f"Position AEE: {observed_metrics['position_aee']:.4f}")
-    
+
     print("State head physics:")
     print(f"Position AEE: {state_head_metrics['position_aee']:.4f}")
 
     print("\n=== Evaluating mode: rollout ===")
     rollout_test_loader = build_rollout_loader(
         sequence_dirs=test_dirs, context=context, invert=invert, grayscale=grayscale,
-        rollout_steps=args.rollout_steps, num_workers=args.num_workers, 
+        rollout_steps=args.rollout_steps, num_workers=args.num_workers,
         batch_size=args.rollout_batch_size, stride=args.eval_stride
     )
 

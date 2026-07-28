@@ -40,6 +40,7 @@ def load_model(model_dir, ckpt_name, device):
         invert=args_dict.get("invert", False),
         generated_frame_loss_weight=args_dict.get("generated_frame_loss_weight", 0.0),
         generation_loss_steps=args_dict.get("generation_loss_steps", 5),
+        state_dim=args_dict.get("state_dim", 4),
     ).to(device)
 
     model.load_state_dict(ckpt["model_state_dict"])
