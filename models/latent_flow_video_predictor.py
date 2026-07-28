@@ -366,12 +366,8 @@ class LatentFlowVideoPredictor(nn.Module):
         fg_weight = 15.0
         weights = torch.ones_like(target_frame)
 
-        if self.invert:
-            # after invert: ball is bright, background is dark
-            foreground_mask = target_frame > 0.5
-        else:
-            # without invert: ball is dark, background is bright
-            foreground_mask = target_frame < 0.5
+        # without invert: ball is dark, background is bright
+        foreground_mask = target_frame > 0.5
 
         weights[foreground_mask] = fg_weight
         

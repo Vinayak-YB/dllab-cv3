@@ -128,8 +128,8 @@ def estimate_ball_center_robust(
     )
 
     for thr in thresholds:
-        # If invert=True, the ball is bright on a dark background.
-        mask = frame > thr if invert else frame < thr
+        # Always invert.
+        mask = frame > thr
         mass = int(mask.sum().item())
         if mass >= min_mass:
             weights = mask.float()
@@ -142,7 +142,7 @@ def estimate_ball_center_robust(
         k = max(3, int(topk_ratio * flat.numel()))
         k = min(k, flat.numel())
         # If invert=True, take the brightest pixels; otherwise take the darkest pixels.
-        vals, idx = torch.topk(flat, k=k, largest=invert)
+        vals, idx = torch.topk(flat, k=k, largest=True)
 
         if vals.numel() >= min_mass:
             yy = (idx // w).float()
