@@ -120,46 +120,263 @@ def estimate_ball_center_robust(
         fallback_thresholds=(0.4, 0.3, 0.2, 0.15, 0.1, 0.05),
         use_topk_fallback=True, topk_ratio=0.01, debug=False,
 ):
-    frame = _to_single_channel(frame_tensor).float().clamp(0, 1)
-    thresholds = [threshold] + [t for t in fallback_thresholds if t != threshold]
+    """Estimate the center of one bright foreground object.
+
+    This is kept for single-ball environments. The current main datasets use
+    dark background + bright ball(s), so we always look for bright pixels.
+    """
+    centers = estimate_object_centers_robust(
+        frame_tensor=frame_tensor,
+        num_objects=1,
+        invert=invert,
+        threshold=threshold,
+        min_mass=min_mass,
+        fallback_thresholds=fallback_thresholds,
+        use_topk_fallback=use_topk_fallback,
+        topk_ratio=topk_ratio,
+        debug=debug,
+    )
+    return centers[0]
+
+
+def _connected_components(mask):
+    """Return connected components from a 2D boolean numpy mask."""
+    mask = mask.astype(bool)
+    h, w = mask.shape
+    visited = np.zeros_like(mask, dtype=bool)
+    components = []
+
+    for y0 in range(h):
+        for x0 in range(w):
+            if not mask[y0, x0] or visited[y0, x0]:
+                continue
+
+            stack = [(y0, x0)]
+            visited[y0, x0] = True
+            ys = []
+            xs = []
+
+            while stack:
+                y, x = stack.pop()
+                ys.append(y)
+                xs.append(x)
+
+                for dy in (-1, 0, 1):
+                    for dx in (-1, 0, 1):
+                        if dy == 0 and dx == 0:
+                            continue
+                        ny = y + dy
+                        nx = x + dx
+                        if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not visited[ny, nx]:
+                            visited[ny, nx] = True
+                            stack.append((ny, nx))
+
+            components.append((np.asarray(ys), np.asarray(xs)))
+
+    return components
+
+
+def _centers_from_components(frame_np, mask_np, num_objects, min_mass):
+    components = _connected_components(mask_np)
+
+    centers = []
+    for ys, xs in components:
+        if len(xs) < min_mass:
+            continue
+        vals = frame_np[ys, xs].astype(np.float64)
+        weight_sum = vals.sum()
+        if weight_sum <= 1e-8:
+            cx = float(xs.mean())
+            cy = float(ys.mean())
+        else:
+            cx = float((xs * vals).sum() / weight_sum)
+            cy = float((ys * vals).sum() / weight_sum)
+        centers.append((len(xs), cx, cy))
+
+    centers.sort(key=lambda item: item[0], reverse=True)
+    centers = centers[:num_objects]
+
+    if len(centers) < num_objects:
+        return None
+
+    result = torch.tensor([[cx, cy] for _, cx, cy in centers], dtype=torch.float32)
+    # Deterministic order for the initial estimate. Matching code later handles identity.
+    result = result[torch.argsort(result[:, 0])]
+    return result
+
+
+def _topk_fallback_single_or_two(frame, num_objects, topk_ratio, min_mass):
+    """Fallback for 1-ball / 2-ball cases using the brightest pixels.
+
+    For one object, return the mean of the brightest pixels.
+    For two objects, run a tiny 2-cluster k-means over the brightest pixels.
+    """
+    if num_objects not in (1, 2):
+        raise ValueError(f"Only num_objects=1 or num_objects=2 are supported, got {num_objects}")
+
+    flat = frame.reshape(-1)
+    k = max(num_objects * max(min_mass, 10), int(topk_ratio * flat.numel()))
+    k = min(k, flat.numel())
+
+    vals, idx = torch.topk(flat, k=k, largest=True)
+    valid = vals > 0
+    idx = idx[valid]
+
+    if idx.numel() < num_objects * min_mass:
+        return torch.full((num_objects, 2), float("nan"), dtype=torch.float32)
 
     h, w = frame.shape
-    ys, xs = torch.meshgrid(
-        torch.arange(h, dtype=torch.float32, device=frame.device),
-        torch.arange(w, dtype=torch.float32, device=frame.device),
-        indexing="ij"
-    )
+    points = torch.stack([(idx % w).float(), (idx // w).float()], dim=1)
+
+    if num_objects == 1:
+        center = points.mean(dim=0, keepdim=True)
+        return center.cpu().float()
+
+    # num_objects == 2. Initialize centers as leftmost and rightmost bright pixels.
+    order = torch.argsort(points[:, 0])
+    centers = torch.stack([points[order[0]], points[order[-1]]], dim=0).clone()
+
+    for _ in range(10):
+        dists = torch.cdist(points, centers)
+        labels = torch.argmin(dists, dim=1)
+
+        new_centers = []
+        for obj_idx in range(2):
+            cluster = points[labels == obj_idx]
+            if cluster.numel() == 0:
+                new_centers.append(centers[obj_idx])
+            else:
+                new_centers.append(cluster.mean(dim=0))
+        centers = torch.stack(new_centers, dim=0)
+
+    centers = centers[torch.argsort(centers[:, 0])]
+    return centers.cpu().float()
+
+
+def estimate_object_centers_robust(
+        frame_tensor, num_objects=1, invert=False, threshold=0.5, min_mass=3,
+        fallback_thresholds=(0.4, 0.3, 0.2, 0.15, 0.1, 0.05),
+        use_topk_fallback=True, topk_ratio=0.01, debug=False,
+):
+    """Estimate centers for supported observed-space cases.
+
+    Supported cases:
+        num_objects=1: single bright ball, used for baseline and magnetic_wells.
+        num_objects=2: two bright balls, used for billiard.
+
+    Returns:
+        Tensor of shape (num_objects, 2), with coordinates [x, y].
+
+    The current main datasets use dark background + bright ball(s), so this
+    extractor always looks for bright foreground pixels. The invert argument is
+    kept only for compatibility with older call sites.
+    """
+    if num_objects not in (1, 2):
+        raise ValueError(f"Only num_objects=1 or num_objects=2 are supported, got {num_objects}")
+
+    frame = _to_single_channel(frame_tensor).float().clamp(0, 1).cpu()
+    thresholds = [threshold] + [t for t in fallback_thresholds if t != threshold]
+
+    frame_np = frame.numpy()
 
     for thr in thresholds:
-        # Always invert.
-        mask = frame > thr
-        mass = int(mask.sum().item())
-        if mass >= min_mass:
-            weights = mask.float()
-            cx = (xs * weights).sum() / weights.sum()
-            cy = (ys * weights).sum() / weights.sum()
-            return torch.tensor([cx.item(), cy.item()], dtype=torch.float32)
+        # Current main datasets: bright ball(s) on dark background.
+        mask_np = frame_np > thr
+        centers = _centers_from_components(frame_np, mask_np, num_objects, min_mass)
+        if centers is not None:
+            return centers
 
     if use_topk_fallback:
-        flat = frame.reshape(-1)
-        k = max(3, int(topk_ratio * flat.numel()))
-        k = min(k, flat.numel())
-        # If invert=True, take the brightest pixels; otherwise take the darkest pixels.
-        vals, idx = torch.topk(flat, k=k, largest=True)
+        return _topk_fallback_single_or_two(frame, num_objects, topk_ratio, min_mass)
 
-        if vals.numel() >= min_mass:
-            yy = (idx // w).float()
-            xx = (idx % w).float()
-            cx = xx.mean()
-            cy = yy.mean()
-            return torch.tensor([cx.item(), cy.item()], dtype=torch.float32)
-
-    return torch.tensor([torch.nan, torch.nan], dtype=torch.float32)
+    return torch.full((num_objects, 2), float("nan"), dtype=torch.float32)
 
 
-def extract_positions_from_frames_robust(frames, **kwargs):
-    positions = [estimate_ball_center_robust(frame, **kwargs) for frame in frames]
-    return torch.stack(positions, dim=0)
+def extract_positions_from_frames_robust(frames, num_objects=1, **kwargs):
+    centers = [
+        estimate_object_centers_robust(frame, num_objects=num_objects, **kwargs)
+        for frame in frames
+    ]
+    centers = torch.stack(centers, dim=0)
+    if num_objects == 1:
+        return centers[:, 0]
+    return centers
+
+
+def infer_num_objects_from_state(positions):
+    """Infer whether evaluation should use the 1-ball or 2-ball extractor."""
+    if positions is None:
+        return 1
+
+    # One-step single ball: (B, 2)
+    # One-step billiard:    (B, 2, 2)
+    if positions.dim() == 3 and positions.shape[-1] == 2:
+        n = int(positions.shape[-2])
+        return n if n in (1, 2) else 1
+
+    # Rollout billiard: (B, H, 2, 2)
+    if positions.dim() == 4 and positions.shape[-1] == 2:
+        n = int(positions.shape[-2])
+        return n if n in (1, 2) else 1
+
+    return 1
+
+
+def _best_permutation_indices(ref, points):
+    """Return indices that reorder points to best match ref. Supports small N."""
+    n = ref.shape[0]
+    if n == 1:
+        return torch.tensor([0], dtype=torch.long)
+
+    import itertools
+
+    best_perm = None
+    best_dist = None
+    for perm in itertools.permutations(range(n)):
+        perm_tensor = torch.tensor(perm, dtype=torch.long)
+        dist = torch.norm(points[perm_tensor] - ref, dim=1).mean()
+        if best_dist is None or dist < best_dist:
+            best_dist = dist
+            best_perm = perm_tensor
+    return best_perm
+
+
+def match_points_to_reference(points, reference):
+    """Reorder object centers for each sample to match reference centers."""
+    if points.dim() == 2:
+        return points
+
+    matched = []
+    for p, r in zip(points, reference):
+        if torch.isnan(p).any() or torch.isnan(r).any():
+            matched.append(p)
+            continue
+        perm = _best_permutation_indices(r, p)
+        matched.append(p[perm])
+    return torch.stack(matched, dim=0)
+
+
+def object_set_position_distances(pred_positions, tgt_positions):
+    """Mean per-object distance after optimal matching per sample."""
+    if pred_positions.dim() == 2:
+        return torch.norm(pred_positions - tgt_positions, dim=1)
+
+    matched_pred = match_points_to_reference(pred_positions, tgt_positions)
+    return torch.norm(matched_pred - tgt_positions, dim=2).mean(dim=1)
+
+
+def order_sequence_by_previous_step(positions):
+    """Keep object identity approximately consistent over time.
+
+    positions: (B, H, N, 2)
+    """
+    if positions.dim() != 4:
+        return positions
+
+    ordered = positions.clone()
+    for step in range(1, ordered.shape[1]):
+        ordered[:, step] = match_points_to_reference(ordered[:, step], ordered[:, step - 1])
+    return ordered
 
 
 @torch.no_grad()
@@ -432,16 +649,25 @@ def physics_from_latent_probe_rollout(train_hidden, train_pos, train_vel, test_h
 
 
 def physics_from_observed_frames_one_step(
-        target_frames, predicted_frames, last_context_frames, **kwargs
+        target_frames, predicted_frames, last_context_frames, num_objects=1, **kwargs
 ):
-    pred_positions = extract_positions_from_frames_robust(predicted_frames, **kwargs)
-    tgt_positions = extract_positions_from_frames_robust(target_frames, **kwargs)
-    ctx_positions = extract_positions_from_frames_robust(last_context_frames, **kwargs)
+    pred_positions = extract_positions_from_frames_robust(predicted_frames, num_objects=num_objects, **kwargs)
+    tgt_positions = extract_positions_from_frames_robust(target_frames, num_objects=num_objects, **kwargs)
+    ctx_positions = extract_positions_from_frames_robust(last_context_frames, num_objects=num_objects, **kwargs)
+
+    if num_objects > 1:
+        pred_positions = match_points_to_reference(pred_positions, ctx_positions)
+        tgt_positions = match_points_to_reference(tgt_positions, ctx_positions)
 
     pred_velocities = pred_positions - ctx_positions
     tgt_velocities = tgt_positions - ctx_positions
-    position_dists = torch.norm(pred_positions - tgt_positions, dim=1)
-    velocity_dists = torch.norm(pred_velocities - tgt_velocities, dim=1)
+
+    position_dists = object_set_position_distances(pred_positions, tgt_positions)
+
+    if num_objects > 1:
+        velocity_dists = torch.norm(pred_velocities - tgt_velocities, dim=2).mean(dim=1)
+    else:
+        velocity_dists = torch.norm(pred_velocities - tgt_velocities, dim=1)
 
     return {
         "position_aee": torch.nanmean(position_dists).item(),
@@ -450,21 +676,26 @@ def physics_from_observed_frames_one_step(
         "velocity_failures": torch.isnan(velocity_dists).sum().item(),
         "position_total": len(position_dists),
         "velocity_total": len(velocity_dists),
+        "num_objects": num_objects,
     }
 
 
 def physics_from_observed_frames_rollout(
-        target_frames, predicted_frames, **kwargs
+        target_frames, predicted_frames, num_objects=1, **kwargs
 ):
     _, h = target_frames.shape[:2]
     per_step = {}
     all_pred_pos, all_tgt_pos = [], []
 
     for step in range(h):
-        pred_positions = extract_positions_from_frames_robust(predicted_frames[:, step], **kwargs)
-        tgt_positions = extract_positions_from_frames_robust(target_frames[:, step], **kwargs)
+        pred_positions = extract_positions_from_frames_robust(
+            predicted_frames[:, step], num_objects=num_objects, **kwargs
+        )
+        tgt_positions = extract_positions_from_frames_robust(
+            target_frames[:, step], num_objects=num_objects, **kwargs
+        )
 
-        position_dists = torch.norm(pred_positions - tgt_positions, dim=1)
+        position_dists = object_set_position_distances(pred_positions, tgt_positions)
         all_pred_pos.append(pred_positions)
         all_tgt_pos.append(tgt_positions)
 
@@ -477,11 +708,26 @@ def physics_from_observed_frames_rollout(
     all_pred_pos = torch.stack(all_pred_pos, dim=1)
     all_tgt_pos = torch.stack(all_tgt_pos, dim=1)
 
-    pred_vel = all_pred_pos[:, 1:] - all_pred_pos[:, :-1]
-    tgt_vel = all_tgt_pos[:, 1:] - all_tgt_pos[:, :-1]
+    if num_objects > 1:
+        all_pred_pos = order_sequence_by_previous_step(all_pred_pos)
+        all_tgt_pos = order_sequence_by_previous_step(all_tgt_pos)
 
-    vel_dists = torch.norm(pred_vel - tgt_vel, dim=2)
-    pos_dists = torch.norm(all_pred_pos - all_tgt_pos, dim=2)
+    if num_objects > 1:
+        # Align prediction object order to target object order at each step.
+        aligned_pred_pos = []
+        for step in range(h):
+            aligned_pred_pos.append(match_points_to_reference(all_pred_pos[:, step], all_tgt_pos[:, step]))
+        aligned_pred_pos = torch.stack(aligned_pred_pos, dim=1)
+        pos_dists = torch.norm(aligned_pred_pos - all_tgt_pos, dim=3).mean(dim=2)
+
+        pred_vel = aligned_pred_pos[:, 1:] - aligned_pred_pos[:, :-1]
+        tgt_vel = all_tgt_pos[:, 1:] - all_tgt_pos[:, :-1]
+        vel_dists = torch.norm(pred_vel - tgt_vel, dim=3).mean(dim=2)
+    else:
+        pred_vel = all_pred_pos[:, 1:] - all_pred_pos[:, :-1]
+        tgt_vel = all_tgt_pos[:, 1:] - all_tgt_pos[:, :-1]
+        vel_dists = torch.norm(pred_vel - tgt_vel, dim=2)
+        pos_dists = torch.norm(all_pred_pos - all_tgt_pos, dim=2)
 
     for step in range(1, h):
         per_step[str(step + 1)]["velocity_aee"] = torch.nanmean(vel_dists[:, step - 1]).item()
@@ -496,6 +742,7 @@ def physics_from_observed_frames_rollout(
             "velocity_failures": torch.isnan(vel_dists).sum().item(),
             "position_total": pos_dists.numel(),
             "velocity_total": vel_dists.numel(),
+            "num_objects": num_objects,
         },
         "per_step": per_step,
     }
@@ -581,6 +828,11 @@ def main(args):
         model, test_loader, device, args.fm_steps, extract_only=False
     )
 
+    num_objects = args.num_objects
+    if num_objects is None:
+        num_objects = infer_num_objects_from_state(positions)
+    print(f"Observed extractor num_objects: {num_objects}")
+
     kwargs = {
         "threshold": args.threshold, "invert": invert, "min_mass": args.min_mass,
         "fallback_thresholds": tuple(args.fallback_thresholds),
@@ -589,7 +841,7 @@ def main(args):
     }
 
     observed_metrics = physics_from_observed_frames_one_step(
-        target_frames, predicted_frames, last_context_frames, **kwargs
+        target_frames, predicted_frames, last_context_frames, num_objects=num_objects, **kwargs
     )
     latent_probe_metrics = physics_from_latent_probe(
         train_hidden_states, train_positions, train_velocities, hidden_states, positions, velocities
@@ -613,7 +865,9 @@ def main(args):
         model, rollout_test_loader, device, args.rollout_steps, args.fm_steps
     )
 
-    observed_rollout_metrics = physics_from_observed_frames_rollout(target_frames, predicted_frames, **kwargs)
+    observed_rollout_metrics = physics_from_observed_frames_rollout(
+        target_frames, predicted_frames, num_objects=num_objects, **kwargs
+    )
     latent_rollout_metrics = physics_from_latent_probe_rollout(
         train_hidden_states, train_positions, train_velocities, hidden_states, positions, velocities
     )
@@ -627,7 +881,7 @@ def main(args):
             "model_dir": args.model_dir, "ckpt_name": args.ckpt_name, "data_dir": args.data_dir,
             "probe_train_dir": args.probe_train_dir, "split_mode": split_mode, "context": context,
             "invert": invert, "rollout_steps": args.rollout_steps, "fm_steps": args.fm_steps,
-            "eval_stride": args.eval_stride
+            "eval_stride": args.eval_stride, "num_objects": num_objects
         },
         "one_step": {
             "from_observed": observed_metrics,
@@ -663,6 +917,9 @@ if __name__ == "__main__":
     parser.add_argument("--min_mass", type=int, default=3)
     parser.add_argument("--topk_ratio", type=float, default=0.01)
     parser.add_argument("--disable_topk_fallback", action="store_true")
+    parser.add_argument("--num_objects", type=int, choices=[1, 2], default=None,
+                        help="Observed-space extractor mode. Use 1 for baseline/magnetic_wells, 2 for billiard. "
+                             "Default: infer from state shape.")
 
     parser.add_argument("--invert", action="store_true")
     parser.add_argument("--rollout_steps", type=int, default=10)
