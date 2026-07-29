@@ -31,7 +31,7 @@ RUNS = [
         "environment": "baseline",
         "model_type": "latent_flow",
         "run": "latent_flow_baseline_genloss_e30",
-        "path": "checkpoints/latent_flow_baseline_genloss_e30/physics/evaluation_results_physics-data-v3.json",
+        "path": "checkpoints/latent_flow_baseline_genloss_e30/physics/evaluation_results_physics-data-v3-test.json",
         "format": "latent_flow",
     },
 
@@ -55,7 +55,29 @@ RUNS = [
         "environment": "magnetic_wells",
         "model_type": "latent_flow",
         "run": "latent_flow_magwells_genloss_e30",
-        "path": "checkpoints/latent_flow_magwells_genloss_e30/physics/evaluation_results_physics-data-magnetic_wells.json",
+        "path": "checkpoints/latent_flow_magwells_genloss_e30/physics/evaluation_results_physics-data-magnetic_wells-test.json",
+        "format": "latent_flow",
+    },
+
+    {
+        "environment": "billiard",
+        "model_type": "lstm",
+        "run": "lstm_3",
+        "path": "models/lstm_3/physics/evaluation_results.json",
+        "format": "rnn_baseline",
+    },
+    {
+        "environment": "billiard",
+        "model_type": "gru",
+        "run": "gru_1",
+        "path": "models/gru_1/physics/evaluation_results.json",
+        "format": "rnn_baseline",
+    },
+    {
+        "environment": "billiard",
+        "model_type": "latent_flow",
+        "run": "latent_flow_billiard_genloss_e100_gen03_steps8_state02",
+        "path": "checkpoints/latent_flow_billiard_genloss_e100_gen03_steps8_state02/physics/evaluation_results_physics-data-billiard-test.json",
         "format": "latent_flow",
     },
 ]
