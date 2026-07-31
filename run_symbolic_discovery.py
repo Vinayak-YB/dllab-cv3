@@ -3,10 +3,11 @@ import os
 import numpy as np
 
 from pysr import PySRRegressor
-
 import torch
+
 from eval_latent_flow import load_model, get_device, build_rollout_loader, resolve_eval_dirs
 
+os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 def extract_rollout_kinematics(model, dataloader, device, rollout_steps=10, fm_steps=20, max_trajs=100):
     model.eval()
@@ -73,16 +74,14 @@ def build_regression_dataset(predicted_states, target="ax", max_samples=None, fi
     X = np.asarray(X_data, dtype=np.float32)
     y = np.asarray(y_data, dtype=np.float32)
 
-    # --- NEW: Filter out collision impulses (bounces) ---
     if filter_bounces and len(y) > 0:
         p_low = np.percentile(y, 5)
         p_high = np.percentile(y, 95)
         mask = (y >= p_low) & (y <= p_high)
         X = X[mask]
         y = y[mask]
-        print(f"[*] Filtered bounces: kept {len(y)} samples within bounds [{p_low:.3f}, {p_high:.3f}]")
+        print(f"Filtered bounces: kept {len(y)} samples within bounds [{p_low:.3f}, {p_high:.3f}]")
 
-    # Downsample if needed
     if max_samples is not None and len(X) > max_samples:
         idx = rng.choice(len(X), size=max_samples, replace=False)
         X = X[idx]
@@ -93,7 +92,7 @@ def build_regression_dataset(predicted_states, target="ax", max_samples=None, fi
 
 def main(args):
     device = get_device()
-    print(f"[*] Loading model from: {args.model_dir}/{args.ckpt_name}")
+    print(f"Loading model from: {args.model_dir}/{args.ckpt_name}")
 
     model, ckpt_args = load_model(args.model_dir, args.ckpt_name, device)
     context = ckpt_args.get("context", 5)
@@ -106,13 +105,13 @@ def main(args):
         sequence_dirs=test_dirs,
         context=context,
         grayscale=grayscale,
-        invert=invert, # Pass invert to the loader!
+        invert=invert,
         rollout_steps=args.rollout_steps,
         num_workers=0,
         batch_size=args.batch_size,
     )
 
-    print(f"[*] Generating rollout ({args.rollout_steps} steps) and abstracting physical states...")
+    print(f"Generating rollout ({args.rollout_steps} steps) and abstracting physical states...")
     predicted_states = extract_rollout_kinematics(
         model=model,
         dataloader=dataloader,
@@ -130,7 +129,7 @@ def main(args):
         seed=args.seed,
     )
 
-    print(f"[*] Starting PySR for symbolic discovery of '{args.target}' on {len(X)} samples...")
+    print(f"Starting PySR for symbolic discovery of '{args.target}' on {len(X)} samples...")
 
     pysr_model = PySRRegressor(
         niterations=args.pysr_iters,
@@ -146,14 +145,13 @@ def main(args):
 
     pysr_model.fit(X, y, variable_names=["x", "y", "vx", "vy"])
 
-    print("\n" + "=" * 60)
-    print(f"LEARNED EQUATION FOR {args.target.upper()}:")
+    print(f"\nLearned equation for {args.target.upper()}:")
     print(pysr_model.sympy())
-    print("=" * 60 + "\n")
+    print("\n")
 
     out_csv = os.path.join(args.model_dir, f"pysr_equations_{args.target}.csv")
     pysr_model.equations_.to_csv(out_csv, index=False)
-    print(f"[*] Equations saved to: {out_csv}")
+    print(f"Equations saved to: {out_csv}")
 
 
 if __name__ == "__main__":
@@ -172,7 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_trajs", type=int, default=100)
 
-    parser.add_argument("--target", type=str, choices=["ax", "ay"], default="ay") # Default changed to 'ay' (gravity)
+    parser.add_argument("--target", type=str, choices=["ax", "ay"], default="ay")
     parser.add_argument("--max_samples", type=int, default=3000)
     parser.add_argument("--filter_bounces", action="store_true", help="Filter out collision impulse spikes")
 
