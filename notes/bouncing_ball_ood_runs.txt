@@ -1,228 +1,343 @@
-
-(physics-video) C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics>python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-gravity --val_pct 0.2
-Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:17<00:00,  2.94s/it]
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-gravity --val_pct 0.2
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:24<00:00,  4.06s/it]
 Observed physics:
-Average Position Endpoint Error (frame): 7.965966499637541
-Average Velocity Endpoint Error (frame): 9.94353813851368
+Average Position Endpoint Error (frame): 6.221816881222453
+Average Velocity Endpoint Error (frame): 6.147456938217379
 Position Failures (frame): 0 / 380
 Velocity Failures (frame): 0 / 379
 
-Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:18<00:00,  1.56s/it]
+Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:26<00:00,  2.17s/it]
 Latent physics:
-Average Position R2 (frame): -512.0669435058747
-Average Velocity R2 (frame): -587.1375788754651
-Average Position Endpoint Error (frame): 193.40467534698683
-Average Velocity Endpoint Error (frame): 21.147709769392232
-Average Train Position R2 (frame): 0.9407571188509866
-Average Train Velocity R2 (frame): 0.8360445902596418
-Average Train Position Endpoint Error (frame): 6.973253121562559
-Average Train Velocity Endpoint Error (frame): 1.2596440656147165
+Average Position R2 (frame): -183.08558688968475
+Average Velocity R2 (frame): -977.9179512600913
+Average Position Endpoint Error (frame): 86.41347201299826
+Average Velocity Endpoint Error (frame): 21.646763205014693
+Average Train Position R2 (frame): 0.8615400302612928
+Average Train Velocity R2 (frame): 0.7098812387098044
+Average Train Position Endpoint Error (frame): 9.457575871712583
+Average Train Velocity Endpoint Error (frame): 1.5380161176286935
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:15<00:00,  3.96s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:25<00:00,  6.25s/it]
 Observed physics:
-Average Position Endpoint Error (trajectory): 41.70221469397573
-Average Velocity Endpoint Error (trajectory): 5.15250700612126
+Average Position Endpoint Error (trajectory): 65.86533660886778
+Average Velocity Endpoint Error (trajectory): 18.05637093604196
 Position Failures (trajectory): 0 / 380
 Velocity Failures (trajectory): 0 / 379
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:16<00:00,  2.06s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:26<00:00,  3.29s/it]
 Latent physics:
-Average Position R2 (trajectory): -560.123490731036
-Average Velocity R2 (trajectory): -3524.583879473932
-Average Position Endpoint Error (trajectory): 136.73552254613716
-Average Velocity Endpoint Error (trajectory): 27.680444135469767
-Average Train Position R2 (trajectory): 0.24247949788856216
-Average Train Velocity R2 (trajectory): 0.20350650252651353
-Average Train Position Endpoint Error (trajectory): 27.398177497262708
-Average Train Velocity Endpoint Error (trajectory): 3.0222719264160163
+Average Position R2 (trajectory): -0.2165869850792136
+Average Velocity R2 (trajectory): -0.012524066952375845
+Average Position Endpoint Error (trajectory): 39.2912502651254
+Average Velocity Endpoint Error (trajectory): 4.379471765935016
+Average Train Position R2 (trajectory): 0.08950914978486008
+Average Train Velocity R2 (trajectory): 0.07516368664760475
+Average Train Position Endpoint Error (trajectory): 30.14240207851948
+Average Train Velocity Endpoint Error (trajectory): 3.093746169669571
 
-
-(physics-video) C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics>python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-velocity --val_pct 0.2
-Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:17<00:00,  2.91s/it]
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-gravity
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3/3 [00:23<00:00,  7.96s/it]
 Observed physics:
-Average Position Endpoint Error (frame): 9.038297511573644
-Average Velocity Endpoint Error (frame): 9.510467218528223
+Average Position Endpoint Error (frame): 6.161533276427326
+Average Velocity Endpoint Error (frame): 5.057017081148915
+Position Failures (frame): 0 / 190
+Velocity Failures (frame): 0 / 189
+
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:24<00:00,  4.08s/it]
+Latent physics:
+Average Position R2 (frame): -1005757313.4848868
+Average Velocity R2 (frame): -2207356233.467259
+Average Position Endpoint Error (frame): 452237.5151806232
+Average Velocity Endpoint Error (frame): 73478.80311742783
+Average Train Position R2 (frame): 0.8750365702413172
+Average Train Velocity R2 (frame): 0.6920409684502803
+Average Train Position Endpoint Error (frame): 8.054515810428803
+Average Train Velocity Endpoint Error (frame): 1.5398780648571748
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2/2 [00:22<00:00, 11.17s/it]
+Observed physics:
+Average Position Endpoint Error (trajectory): 66.08518878219974
+Average Velocity Endpoint Error (trajectory): 17.90507690846007
+Position Failures (trajectory): 0 / 190
+Velocity Failures (trajectory): 0 / 189
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:22<00:00,  5.72s/it]
+Latent physics:
+Average Position R2 (trajectory): -2.5456246418247526
+Average Velocity R2 (trajectory): -0.3755472488376612
+Average Position Endpoint Error (trajectory): 48.48684120677469
+Average Velocity Endpoint Error (trajectory): 5.101067265561401
+Average Train Position R2 (trajectory): 0.10461702765721032
+Average Train Velocity R2 (trajectory): 0.0625358134819225
+Average Train Position Endpoint Error (trajectory): 28.850187898011704
+Average Train Velocity Endpoint Error (trajectory): 3.2828460759440627
+
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/lstm_1 --data_dir physics-data-bouncing_ball-ood-gravity --val_pct 0.2
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:24<00:00,  4.01s/it]
+Observed physics:
+Average Position Endpoint Error (frame): 4.570178493279213
+Average Velocity Endpoint Error (frame): 4.000750212592639
 Position Failures (frame): 0 / 380
 Velocity Failures (frame): 0 / 379
 
-Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:18<00:00,  1.53s/it]
+Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:26<00:00,  2.20s/it]
 Latent physics:
-Average Position R2 (frame): 0.8146179723120293
-Average Velocity R2 (frame): 0.2320325827931739
-Average Position Endpoint Error (frame): 12.294070050319101
-Average Velocity Endpoint Error (frame): 2.8628805258652124
-Average Train Position R2 (frame): 0.9674552285075898
-Average Train Velocity R2 (frame): 0.889638844125705
-Average Train Position Endpoint Error (frame): 6.737214217110445
-Average Train Velocity Endpoint Error (frame): 1.27835879032901
+Average Position R2 (frame): 0.8255240376170802
+Average Velocity R2 (frame): 0.6349495115397429
+Average Position Endpoint Error (frame): 14.549390987747556
+Average Velocity Endpoint Error (frame): 2.0682387253369785
+Average Train Position R2 (frame): 0.8930803751961971
+Average Train Velocity R2 (frame): 0.7575020036022788
+Average Train Position Endpoint Error (frame): 10.173532800797748
+Average Train Velocity Endpoint Error (frame): 1.5405593436541116
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:15<00:00,  3.84s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:23<00:00,  5.92s/it]
 Observed physics:
-Average Position Endpoint Error (trajectory): 44.87782266946598
-Average Velocity Endpoint Error (trajectory): 5.733009797414117
+Average Position Endpoint Error (trajectory): 66.44462497079766
+Average Velocity Endpoint Error (trajectory): 7.1411641584500405
 Position Failures (trajectory): 0 / 380
 Velocity Failures (trajectory): 0 / 379
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:16<00:00,  2.07s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:23<00:00,  2.96s/it]
 Latent physics:
-Average Position R2 (trajectory): -199.56508894680053
-Average Velocity R2 (trajectory): -242.17715839253262
-Average Position Endpoint Error (trajectory): 125.83063219593163
-Average Velocity Endpoint Error (trajectory): 16.537080135916973
-Average Train Position R2 (trajectory): 0.20010247998875097
-Average Train Velocity R2 (trajectory): 0.20623905918012714
-Average Train Position Endpoint Error (trajectory): 33.654093811910606
-Average Train Velocity Endpoint Error (trajectory): 4.115050740172094
+Average Position R2 (trajectory): -0.12199171966928002
+Average Velocity R2 (trajectory): 0.0687692787549335
+Average Position Endpoint Error (trajectory): 37.633390476239676
+Average Velocity Endpoint Error (trajectory): 4.352031708885737
+Average Train Position R2 (trajectory): 0.20440987223203538
+Average Train Velocity R2 (trajectory): 0.1475475296440053
+Average Train Position Endpoint Error (trajectory): 31.00084654898714
+Average Train Velocity Endpoint Error (trajectory): 3.3618309992946855
 
-
-(physics-video) C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics>python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-position --val_pct 0.2
-Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:19<00:00,  3.17s/it]
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/lstm_1 --data_dir physics-data-bouncing_ball-ood-gravity
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3/3 [00:23<00:00,  7.76s/it]
 Observed physics:
-Average Position Endpoint Error (frame): 8.570862553498937
-Average Velocity Endpoint Error (frame): 7.184971535589481
+Average Position Endpoint Error (frame): 5.283568466632121
+Average Velocity Endpoint Error (frame): 4.747063338740839
+Position Failures (frame): 0 / 190
+Velocity Failures (frame): 0 / 189
+
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:23<00:00,  3.97s/it]
+Latent physics:
+Average Position R2 (frame): -2574.7235792813067
+Average Velocity R2 (frame): -915.6892076215347
+Average Position Endpoint Error (frame): 753.0742663080799
+Average Velocity Endpoint Error (frame): 67.89411170224606
+Average Train Position R2 (frame): 0.8722495174240323
+Average Train Velocity R2 (frame): 0.7066709571365188
+Average Train Position Endpoint Error (frame): 8.998200248401005
+Average Train Velocity Endpoint Error (frame): 1.469296079121004
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2/2 [00:23<00:00, 11.51s/it]
+Observed physics:
+Average Position Endpoint Error (trajectory): 66.1134137309664
+Average Velocity Endpoint Error (trajectory): 6.571026594569433
+Position Failures (trajectory): 0 / 190
+Velocity Failures (trajectory): 0 / 189
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:23<00:00,  5.93s/it]
+Latent physics:
+Average Position R2 (trajectory): -0.5139338582107181
+Average Velocity R2 (trajectory): 0.11179281110071276
+Average Position Endpoint Error (trajectory): 42.17675666034674
+Average Velocity Endpoint Error (trajectory): 4.643491231027854
+Average Train Position R2 (trajectory): 0.28007781457758996
+Average Train Velocity R2 (trajectory): 0.19635907760025234
+Average Train Position Endpoint Error (trajectory): 28.405458123799804
+Average Train Velocity Endpoint Error (trajectory): 2.7523713108948247
+
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-velocity --val_pct 0.2
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:24<00:00,  4.09s/it]
+Observed physics:
+Average Position Endpoint Error (frame): 6.350631015323116
+Average Velocity Endpoint Error (frame): 5.794566018947077
 Position Failures (frame): 0 / 380
 Velocity Failures (frame): 0 / 379
 
-Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:19<00:00,  1.64s/it]
+Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:25<00:00,  2.13s/it]
 Latent physics:
-Average Position R2 (frame): 0.8549624566780603
-Average Velocity R2 (frame): 0.03915970601116453
-Average Position Endpoint Error (frame): 13.035803341131219
-Average Velocity Endpoint Error (frame): 2.38468943330176
-Average Train Position R2 (frame): 0.9679828075524181
-Average Train Velocity R2 (frame): 0.9145789548542953
-Average Train Position Endpoint Error (frame): 6.54477272083329
-Average Train Velocity Endpoint Error (frame): 0.86377411169986
+Average Position R2 (frame): -0.6507866021361168
+Average Velocity R2 (frame): -4.862048454774443
+Average Position Endpoint Error (frame): 19.56119577490879
+Average Velocity Endpoint Error (frame): 4.484622311987483
+Average Train Position R2 (frame): 0.9329952466407501
+Average Train Velocity R2 (frame): 0.7763237472647417
+Average Train Position Endpoint Error (frame): 9.375978629791243
+Average Train Velocity Endpoint Error (frame): 1.7194120497459895
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:15<00:00,  3.87s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:22<00:00,  5.74s/it]
 Observed physics:
-Average Position Endpoint Error (trajectory): 40.897953428712896
-Average Velocity Endpoint Error (trajectory): 5.170931348561683
+Average Position Endpoint Error (trajectory): 64.79094824568408
+Average Velocity Endpoint Error (trajectory): 18.613256281246105
 Position Failures (trajectory): 0 / 380
 Velocity Failures (trajectory): 0 / 379
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:16<00:00,  2.02s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:24<00:00,  3.06s/it]
 Latent physics:
-Average Position R2 (trajectory): 0.0644128060442063
-Average Velocity R2 (trajectory): -0.053107808698357795
-Average Position Endpoint Error (trajectory): 38.65056531329962
-Average Velocity Endpoint Error (trajectory): 4.285909373959285
-Average Train Position R2 (trajectory): 0.20666560649815935
-Average Train Velocity R2 (trajectory): 0.1460648913580419
-Average Train Position Endpoint Error (trajectory): 33.6936358260085
-Average Train Velocity Endpoint Error (trajectory): 3.601727811268531
+Average Position R2 (trajectory): -0.2426306316887047
+Average Velocity R2 (trajectory): -0.12393302912931325
+Average Position Endpoint Error (trajectory): 42.18358463415423
+Average Velocity Endpoint Error (trajectory): 5.2538018678483995
+Average Train Position R2 (trajectory): 0.06430700020519375
+Average Train Velocity R2 (trajectory): 0.08692889591395653
+Average Train Position Endpoint Error (trajectory): 36.772042662851156
+Average Train Velocity Endpoint Error (trajectory): 4.137592347312717
 
-
-(physics-video) C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics>python eval_physics.py --model_dir models/lstm_1 --data_dir physics-data-bouncing_ball-ood-gravity --val_pct 0.2
-Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:15<00:00,  2.54s/it]
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-velocity
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3/3 [00:22<00:00,  7.44s/it]
 Observed physics:
-Average Position Endpoint Error (frame): 6.901296950850999
-Average Velocity Endpoint Error (frame): 5.909920764154458
+Average Position Endpoint Error (frame): 7.05973424108453
+Average Velocity Endpoint Error (frame): 7.198113049932253
+Position Failures (frame): 0 / 190
+Velocity Failures (frame): 0 / 189
+
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:23<00:00,  3.87s/it]
+Latent physics:
+Average Position R2 (frame): 0.7664546074064863
+Average Velocity R2 (frame): 0.5263573051661692
+Average Position Endpoint Error (frame): 14.343321772441998
+Average Velocity Endpoint Error (frame): 3.12609977833573
+Average Train Position R2 (frame): 0.907062135388931
+Average Train Velocity R2 (frame): 0.7477652784783414
+Average Train Position Endpoint Error (frame): 8.835327651701013
+Average Train Velocity Endpoint Error (frame): 1.7579934575723464
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2/2 [00:21<00:00, 10.91s/it]
+Observed physics:
+Average Position Endpoint Error (trajectory): 63.9523876801908
+Average Velocity Endpoint Error (trajectory): 18.358261110086005
+Position Failures (trajectory): 0 / 190
+Velocity Failures (trajectory): 0 / 189
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:21<00:00,  5.42s/it]
+Latent physics:
+Average Position R2 (trajectory): 0.017037183422587088
+Average Velocity R2 (trajectory): -0.08055966198486808
+Average Position Endpoint Error (trajectory): 33.88077534482849
+Average Velocity Endpoint Error (trajectory): 5.078780653533096
+Average Train Position R2 (trajectory): 0.08970333772479822
+Average Train Velocity R2 (trajectory): 0.08456179959518395
+Average Train Position Endpoint Error (trajectory): 30.744179390186464
+Average Train Velocity Endpoint Error (trajectory): 4.26158681083095
+
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/lstm_1 --data_dir physics-data-bouncing_ball-ood-velocity --val_pct 0.2
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [01:12<00:00, 12.07s/it]
+Observed physics:
+Average Position Endpoint Error (frame): 4.607097362839451
+Average Velocity Endpoint Error (frame): 3.0732969885497736
 Position Failures (frame): 0 / 380
 Velocity Failures (frame): 0 / 379
 
-Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:16<00:00,  1.39s/it]
+Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [01:07<00:00,  5.59s/it]
 Latent physics:
-Average Position R2 (frame): -1.7606626609310547
-Average Velocity R2 (frame): -0.7553023123130643
-Average Position Endpoint Error (frame): 31.126364647669412
-Average Velocity Endpoint Error (frame): 3.3808847273057507
-Average Train Position R2 (frame): 0.9449870427055926
-Average Train Velocity R2 (frame): 0.8799335476166834
-Average Train Position Endpoint Error (frame): 7.058502378959807
-Average Train Velocity Endpoint Error (frame): 1.0896576864287777
+Average Position R2 (frame): 0.9029426401843711
+Average Velocity R2 (frame): 0.7233765313466505
+Average Position Endpoint Error (frame): 12.100948871077303
+Average Velocity Endpoint Error (frame): 2.2819001885682533
+Average Train Position R2 (frame): 0.93193436137297
+Average Train Velocity R2 (frame): 0.811723771272806
+Average Train Position Endpoint Error (frame): 10.057986265196568
+Average Train Velocity Endpoint Error (frame): 1.6897275381547936
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:14<00:00,  3.72s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [01:04<00:00, 16.12s/it]
 Observed physics:
-Average Position Endpoint Error (trajectory): 41.09627248177755
-Average Velocity Endpoint Error (trajectory): 5.1419116869950825
+Average Position Endpoint Error (trajectory): 63.2480705869126
+Average Velocity Endpoint Error (trajectory): 9.031976584089357
 Position Failures (trajectory): 0 / 380
 Velocity Failures (trajectory): 0 / 379
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:15<00:00,  1.94s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [01:13<00:00,  9.16s/it]
 Latent physics:
-Average Position R2 (trajectory): -1.358554814929882
-Average Velocity R2 (trajectory): -0.47598922632091967
-Average Position Endpoint Error (trajectory): 39.1107062984401
-Average Velocity Endpoint Error (trajectory): 4.726005999523767
-Average Train Position R2 (trajectory): 0.5741810129397193
-Average Train Velocity R2 (trajectory): 0.38347006153773755
-Average Train Position Endpoint Error (trajectory): 21.75119122226695
-Average Train Velocity Endpoint Error (trajectory): 2.8568652017105114
+Average Position R2 (trajectory): -0.34446448287516584
+Average Velocity R2 (trajectory): -0.38628435252918547
+Average Position Endpoint Error (trajectory): 43.38305123646431
+Average Velocity Endpoint Error (trajectory): 5.500781181643805
+Average Train Position R2 (trajectory): 0.20267472572829365
+Average Train Velocity R2 (trajectory): 0.15532410608431657
+Average Train Position Endpoint Error (trajectory): 35.1491377322343
+Average Train Velocity Endpoint Error (trajectory): 4.300700584805501
 
-
-(physics-video) C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics>python eval_physics.py --model_dir models/lstm_1 --data_dir physics-data-bouncing_ball-ood-velocity --val_pct 0.2
-Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:15<00:00,  2.58s/it]
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/gru_0 --data_dir physics-data-bouncing_ball-ood-position
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 3/3 [00:22<00:00,  7.55s/it]
 Observed physics:
-Average Position Endpoint Error (frame): 6.104294103666772
-Average Velocity Endpoint Error (frame): 4.633169041528515
+Average Position Endpoint Error (frame): 6.136529671816865
+Average Velocity Endpoint Error (frame): 5.453909175873445
+Position Failures (frame): 0 / 190
+Velocity Failures (frame): 0 / 189
+
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:24<00:00,  4.03s/it]
+Latent physics:
+Average Position R2 (frame): 0.7942518521412973
+Average Velocity R2 (frame): 0.19498899936958092
+Average Position Endpoint Error (frame): 16.600083335695917
+Average Velocity Endpoint Error (frame): 3.3006990464626105
+Average Train Position R2 (frame): 0.9444850607873354
+Average Train Velocity R2 (frame): 0.7713065353911868
+Average Train Position Endpoint Error (frame): 8.83141766687177
+Average Train Velocity Endpoint Error (frame): 1.4421856574671381
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 2/2 [00:21<00:00, 10.77s/it]
+Observed physics:
+Average Position Endpoint Error (trajectory): 55.0748035102466
+Average Velocity Endpoint Error (trajectory): 17.230082604875925
+Position Failures (trajectory): 0 / 190
+Velocity Failures (trajectory): 0 / 189
+
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:22<00:00,  5.54s/it]
+Latent physics:
+Average Position R2 (trajectory): 0.08190201858424156
+Average Velocity R2 (trajectory): 0.0343358430246975
+Average Position Endpoint Error (trajectory): 40.34465938125934
+Average Velocity Endpoint Error (trajectory): 4.644371314923326
+Average Train Position R2 (trajectory): 0.12224810377847267
+Average Train Velocity R2 (trajectory): 0.036107992720964266
+Average Train Position Endpoint Error (trajectory): 36.73150605745823
+Average Train Velocity Endpoint Error (trajectory): 3.9120585032112305
+
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics> python eval_physics.py --model_dir models/lstm_1 --data_dir physics-data-bouncing_ball-ood-position --val_pct 0.2
+🔹 Auto-configured for single-object environment (num_objects = 1)
+Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:22<00:00,  3.79s/it]
+Observed physics:
+Average Position Endpoint Error (frame): 3.94214909077025
+Average Velocity Endpoint Error (frame): 2.5012749754909622
 Position Failures (frame): 0 / 380
 Velocity Failures (frame): 0 / 379
 
-Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:16<00:00,  1.36s/it]
+Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:24<00:00,  2.02s/it]
 Latent physics:
-Average Position R2 (frame): 0.9241372244493147
-Average Velocity R2 (frame): 0.8013424925721304
-Average Position Endpoint Error (frame): 10.482738553700957
-Average Velocity Endpoint Error (frame): 1.8335138923393228
-Average Train Position R2 (frame): 0.9640160695874036
-Average Train Velocity R2 (frame): 0.9073112737238767
-Average Train Position Endpoint Error (frame): 6.8343374323170645
-Average Train Velocity Endpoint Error (frame): 1.2239679569582238
+Average Position R2 (frame): 0.8980442507446655
+Average Velocity R2 (frame): 0.7029210380765577
+Average Position Endpoint Error (frame): 12.490712619237822
+Average Velocity Endpoint Error (frame): 1.777679029499238
+Average Train Position R2 (frame): 0.9384364399636329
+Average Train Velocity R2 (frame): 0.8721884486977195
+Average Train Position Endpoint Error (frame): 9.210712173014448
+Average Train Velocity Endpoint Error (frame): 1.054422290583429
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:15<00:00,  3.83s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:22<00:00,  5.63s/it]
 Observed physics:
-Average Position Endpoint Error (trajectory): 44.8914740972439
-Average Velocity Endpoint Error (trajectory): 5.737498976597413
+Average Position Endpoint Error (trajectory): 52.31701971073338
+Average Velocity Endpoint Error (trajectory): 10.679986873825209
 Position Failures (trajectory): 0 / 380
 Velocity Failures (trajectory): 0 / 379
 
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:15<00:00,  1.96s/it]
+Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:23<00:00,  2.94s/it]
 Latent physics:
-Average Position R2 (trajectory): -52976.162414883125
-Average Velocity R2 (trajectory): -26612.65678449065
-Average Position Endpoint Error (trajectory): 1355.274740429016
-Average Velocity Endpoint Error (trajectory): 99.70937944525
-Average Train Position R2 (trajectory): 0.5076347920893316
-Average Train Velocity R2 (trajectory): 0.4176418146910386
-Average Train Position Endpoint Error (trajectory): 27.218998652873765
-Average Train Velocity Endpoint Error (trajectory): 3.586260365441006
+Average Position R2 (trajectory): -0.21365920891222845
+Average Velocity R2 (trajectory): 0.10986647206350048
+Average Position Endpoint Error (trajectory): 44.655764522789255
+Average Velocity Endpoint Error (trajectory): 4.044872823861648
+Average Train Position R2 (trajectory): 0.3514864850559475
+Average Train Velocity R2 (trajectory): 0.23124727768372144
+Average Train Position Endpoint Error (trajectory): 29.523749288126716
+Average Train Velocity Endpoint Error (trajectory): 3.452546559497217
 
-
-(physics-video) C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics>python eval_physics.py --model_dir models/lstm_1 --data_dir physics-data-bouncing_ball-ood-position --val_pct 0.2
-Frame: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 6/6 [00:15<00:00,  2.55s/it]
-Observed physics:
-Average Position Endpoint Error (frame): 6.045528824040998
-Average Velocity Endpoint Error (frame): 4.42266883704852
-Position Failures (frame): 0 / 380
-Velocity Failures (frame): 0 / 379
-
-Frame: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 12/12 [00:16<00:00,  1.41s/it]
-Latent physics:
-Average Position R2 (frame): 0.8848227245653114
-Average Velocity R2 (frame): 0.8414439082924619
-Average Position Endpoint Error (frame): 12.526476084120123
-Average Velocity Endpoint Error (frame): 1.309986461303952
-Average Train Position R2 (frame): 0.967810477509278
-Average Train Velocity R2 (frame): 0.9502042996157085
-Average Train Position Endpoint Error (frame): 6.524510472105947
-Average Train Velocity Endpoint Error (frame): 0.6955000799418428
-
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:15<00:00,  3.80s/it]
-Observed physics:
-Average Position Endpoint Error (trajectory): 40.731949983085464
-Average Velocity Endpoint Error (trajectory): 7.916342292509067
-Position Failures (trajectory): 0 / 380
-Velocity Failures (trajectory): 0 / 379
-
-Trajectory: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 8/8 [00:16<00:00,  2.00s/it]
-Latent physics:
-Average Position R2 (trajectory): -6.514117111270072
-Average Velocity R2 (trajectory): -3.936115302198298
-Average Position Endpoint Error (trajectory): 96.20906020893777
-Average Velocity Endpoint Error (trajectory): 8.141923073900891
-Average Train Position R2 (trajectory): 0.5536157011418186
-Average Train Velocity R2 (trajectory): 0.4311488033131679
-Average Train Position Endpoint Error (trajectory): 24.263446512655126
-Average Train Velocity Endpoint Error (trajectory): 2.9311315185860507
-
+(physics-video) PS C:\Users\vinay\Desktop\UniFreiburg\SEM-3\DL-Lab\wmp\world-model-physics>

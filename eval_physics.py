@@ -13,6 +13,7 @@ import numpy as np
 import torch
 import tqdm
 import cv2
+from scipy.optimize import linear_sum_assignment
 
 from dataset import FramePredictionDataset, TrajectoryPredictionDataset
 from model import SequenceEncoderDecoder
@@ -83,134 +84,152 @@ def trajectory_prediction(model, val_loader, device):
     return target_frames, predicted_frames, hidden_states, positions, velocities
 
 
-def find_circle_center_com(image_tensor):
+def find_circle_center_com(image_tensor, threshold=0.35):
     """
-    Find the center of a dark circle in a grayscale image tensor with white background.
-    
-    Args:
-        image_tensor: A PyTorch tensor of shape (1, H, W) representing a grayscale image
-                     with values in [0, 1] where 0 is black and 1 is white
-    
-    Returns:
-        tuple: (y, x) coordinates of the circle center
+    Find center of mass (COM) for single foreground object.
+    Dynamically auto-detects background brightness.
     """
-    # Convert to numpy for easier processing
     if image_tensor.dim() == 3 and image_tensor.size(0) == 1:
-        # Remove channel dimension if present
         image = image_tensor.squeeze(0).cpu().numpy()
     else:
         image = image_tensor.cpu().numpy()
-    
-    # Invert the image so the circle becomes bright (easier to find centroid)
-    # inverted = 1 - image
-    inverted = image < 0.65
-    
-    # Calculate the center of mass (centroid)
+
+    is_dark_bg = image.mean() < 0.5
+    inverted = (image > threshold) if is_dark_bg else (image < (1.0 - threshold))
+
     total_mass = inverted.sum()
     if total_mass == 0:
-        return torch.tensor([torch.nan, torch.nan])  # No circle found
-    
-    # Calculate weighted coordinates
-    y_indices, x_indices = torch.meshgrid(torch.arange(image.shape[0]), torch.arange(image.shape[1]), indexing='ij')
+        return torch.tensor([[torch.nan, torch.nan]])
+
+    y_indices, x_indices = torch.meshgrid(
+        torch.arange(image.shape[0]), torch.arange(image.shape[1]), indexing='ij'
+    )
     y_indices, x_indices = y_indices.numpy(), x_indices.numpy()
-    
+
     center_y = (y_indices * inverted).sum() / total_mass
     center_x = (x_indices * inverted).sum() / total_mass
-    
-    return torch.tensor([center_x + 0.5, 127.5 - center_y])
+
+    return torch.tensor([[center_x + 0.5, 127.5 - center_y]])
 
 
-def find_circle_center_hough(image_tensor, use_com_fallback=True):
+def find_circle_center_hough(image_tensor, use_com_fallback=True, num_objects=1):
     """
-    Find the center of a dark circle in a grayscale image tensor using Hough Circle Transform with sub-pixel accuracy.
-    
-    Args:
-        image_tensor: A PyTorch tensor of shape (1, H, W) representing a grayscale image
-                     with values in [0, 1] where 0 is black and 1 is white
-    
-    Returns:
-        tuple: (x, y) coordinates of the circle center with sub-pixel accuracy
+    Find centers of N objects in an image tensor using Hough Circle Transform.
+    Pads missing detections with NaNs to prevent distorted distance metrics.
     """
-    # Convert to numpy for OpenCV processing
     if image_tensor.dim() == 3 and image_tensor.size(0) == 1:
-        # Remove channel dimension if present
         image = image_tensor.squeeze(0).cpu().numpy()
     else:
         image = image_tensor.cpu().numpy()
-    
-    # Convert to 8-bit image and invert so circle is dark on light background
+
     image_8bit = (image * 255).astype(np.uint8)
-    # Create a binary image with a threshold
-    binary = (image < 0.65).astype(np.uint8) * 255
-    
-    # Apply Gaussian blur to reduce noise
+
+    is_dark_bg = image.mean() < 0.5
+    if is_dark_bg:
+        binary = (image > 0.35).astype(np.uint8) * 255
+    else:
+        binary = (image < 0.65).astype(np.uint8) * 255
+
     blurred = cv2.GaussianBlur(binary, (5, 5), 0)
-    # blurred = binary
-    
-    # Use Hough Circle Transform
+
     circles = cv2.HoughCircles(
-        blurred, 
-        cv2.HOUGH_GRADIENT, 
+        blurred,
+        cv2.HOUGH_GRADIENT,
         dp=0.1,
-        minDist=50,
+        minDist=10 if num_objects > 1 else 50,
         param1=50,
         param2=10,
-        minRadius=4,
-        maxRadius=10
+        minRadius=3,
+        maxRadius=15
     )
-    
-    # If circles are found
+
+    extracted_centers = []
     if circles is not None:
-        # Take the first circle
-        x, y, _ = circles[0, 0]
-        
-        # Refine the circle center using cv2.cornerSubPix for sub-pixel accuracy
-        mask = np.zeros_like(image_8bit, dtype=np.uint8)
-        cv2.circle(mask, (int(x), int(y)), 10, 255, -1)  # Create a mask around the detected circle
-        moments = cv2.moments(mask * image_8bit)
-        if moments["m00"] != 0:
-            refined_x = moments["m10"] / moments["m00"]
-            refined_y = moments["m01"] / moments["m00"]
-        else:
-            refined_x, refined_y = x, y
-        
-        return torch.tensor([refined_x + 0.5, 127.5 - refined_y]).double().round(decimals=1)  # Adjust y coordinate as in the original function
-    elif use_com_fallback:
-        # Fallback to the original method if no circles are found
-        return find_circle_center_com(image_tensor)
-    
-    return torch.tensor([torch.nan, torch.nan])
+        for c in circles[0, :num_objects]:
+            x, y, _ = c
+            mask = np.zeros_like(image_8bit, dtype=np.uint8)
+            cv2.circle(mask, (int(x), int(y)), 10, 255, -1)
+            
+            moments = cv2.moments(mask * binary)
+            if moments["m00"] != 0:
+                refined_x = moments["m10"] / moments["m00"]
+                refined_y = moments["m01"] / moments["m00"]
+            else:
+                refined_x, refined_y = x, y
+
+            extracted_centers.append([refined_x + 0.5, 127.5 - refined_y])
+
+    # Single-object COM fallback
+    if len(extracted_centers) == 0 and num_objects == 1 and use_com_fallback:
+        com_center = find_circle_center_com(image_tensor)
+        if not torch.isnan(com_center).any():
+            extracted_centers.append(com_center[0].tolist())
+
+    # FIXED: Pad missing detection slots with NaNs instead of duplicating
+    while len(extracted_centers) < num_objects:
+        extracted_centers.append([np.nan, np.nan])
+
+    res = torch.tensor(extracted_centers).double().round(decimals=1)
+    return res
+
+
+def compute_matched_distance(pred_pos, target_pos):
+    """
+    Computes Euclidean distance using Hungarian minimal matching.
+    Returns NaN if any object detection in the frame failed (contains NaN).
+    """
+    if torch.isnan(pred_pos).any() or torch.isnan(target_pos).any():
+        return torch.tensor(torch.nan)
+
+    p_np = pred_pos.detach().cpu().numpy().reshape(-1, 2)
+    t_np = target_pos.detach().cpu().numpy().reshape(-1, 2)
+
+    cost_matrix = np.linalg.norm(p_np[:, None, :] - t_np[None, :, :], axis=-1)
+    row_ind, col_ind = linear_sum_assignment(cost_matrix)
+
+    return torch.tensor(cost_matrix[row_ind, col_ind].mean())
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Evaluate physic accuracy of pretrained model.')
     parser.add_argument('--model_dir', type=str, required=True, help='Path to the pretrained model.')
-    parser.add_argument('--data_dir', type=str, required=True, help='Path to the dataset directory.')
+    parser.add_argument('--data_dir', type=str, required=True, help='Path to evaluation dataset directory.')
+    parser.add_argument('--probe_train_dir', type=str, default=None, help='Optional separate path to train linear probes.')
     parser.add_argument('--val_pct', type=float, default=0.1, help='Percentage of data to use for validation.')
+    parser.add_argument('--num_objects', type=int, default=None, help='Number of objects. Auto-detected if None.')
     args = parser.parse_args()
 
-    # Load the model
+    # Auto-detect object count
+    if args.num_objects is None:
+        check_path = f"{args.data_dir} {args.model_dir}".lower()
+        if 'billiard' in check_path:
+            args.num_objects = 2
+            print("🔹 Auto-configured for multi-object environment: Billiards (num_objects = 2)")
+        else:
+            args.num_objects = 1
+            print("🔹 Auto-configured for single-object environment (num_objects = 1)")
+
+    # Load model configuration
     with open(os.path.join(args.model_dir, 'args.json')) as f:
         config = json.load(f)
 
-    if args.data_dir:
-        n_trajectories = len(os.listdir(args.data_dir))
-        sequence_dirs = sorted([
-                                os.path.join(args.data_dir, d) 
-                                for d in os.listdir(args.data_dir) 
-                                if os.path.isdir(os.path.join(args.data_dir, d)) and d.startswith('traj-')
-                            ])
-        num_val_trajectories = int(len(sequence_dirs) * args.val_pct)
-        train_dirs = sequence_dirs[:-num_val_trajectories]
-        val_dirs = sequence_dirs[-num_val_trajectories:]
-    else:
-        args.data_dir = config['data_dir']
-        train_dirs = config['train_dirs']
-        val_dirs = config['val_dirs']
+    # Set up evaluation validation directories
+    n_trajectories = len(os.listdir(args.data_dir))
+    sequence_dirs = [os.path.join(args.data_dir, d) for d in sorted(os.listdir(args.data_dir)) if os.path.isdir(os.path.join(args.data_dir, d))]
+    num_val_trajectories = max(1, int(len(sequence_dirs) * args.val_pct))
+    val_dirs = sequence_dirs[-num_val_trajectories:]
 
-    # subsample training set to avoid overhead
-    assert len(val_dirs) <= len(train_dirs), f'Validation set is larger than training set: {len(val_dirs)} > {len(train_dirs)}'
-    train_dirs = random.sample(train_dirs, 2 * len(val_dirs))
+    # Set up probing training directories (external or default dataset)
+    if args.probe_train_dir:
+        print(f"🔹 Using explicit probing training data: {args.probe_train_dir}")
+        n_probe_trajectories = len(os.listdir(args.probe_train_dir))
+        train_dirs = [os.path.join(args.probe_train_dir, d) for d in sorted(os.listdir(args.probe_train_dir)) if os.path.isdir(os.path.join(args.probe_train_dir, d))]
+    else:
+        train_dirs = sequence_dirs[:-num_val_trajectories]
+
+    # Subsample probe training data if larger than validation
+    if len(train_dirs) > len(val_dirs):
+        train_dirs = random.sample(train_dirs, min(len(train_dirs), 2 * len(val_dirs)))
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -229,8 +248,6 @@ if __name__ == '__main__':
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=1, shuffle=True, num_workers=4)
             val_dataset = TrajectoryPredictionDataset(val_dirs, context=5, transform=transform, return_state=True)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=1, shuffle=False, num_workers=4)
-        else:
-            raise ValueError(f'Invalid mode: {mode}')
 
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         model = SequenceEncoderDecoder.from_pretrained(args.model_dir, device=device)
@@ -239,28 +256,23 @@ if __name__ == '__main__':
 
         compute_prediction = frame_prediction if mode == 'frame' else trajectory_prediction
         target_frames, predicted_frames, hidden_states, positions, velocities = compute_prediction(model, val_loader, device)
-        # print(f'Predicted frames shape: {predicted_frames.shape}')
-        # print(f'Target frames shape: {target_frames.shape}')
-        # print(f'Hidden states shape: {hidden_states.shape}')
-        # print(f'Positions shape: {positions.shape}')
-        # print(f'Velocities shape: {velocities.shape}')
 
-        # estimate predicted positions and velocities from circle centers
-        predicted_positions = torch.stack([find_circle_center_hough(frame) for frame in predicted_frames], dim=0)
+        # Estimate predicted and target positions/velocities
+        predicted_positions = torch.stack([find_circle_center_hough(frame, num_objects=args.num_objects) for frame in predicted_frames], dim=0)
         predicted_velocities = torch.diff(predicted_positions, dim=0)
 
-        # also estimate target positions and velocities instead of look-up to avoid inconsistencies between simulated
-        # and observed velocities (e.g., the ball might be really fast before hitting the ground but the observed
-        # velocity is low due to only a small observed change in position)
-        target_positions = torch.stack([find_circle_center_hough(frame) for frame in target_frames], dim=0)
+        target_positions = torch.stack([find_circle_center_hough(frame, num_objects=args.num_objects) for frame in target_frames], dim=0)
         target_velocities = torch.diff(target_positions, dim=0)
 
-        position_dists = (predicted_positions - target_positions).norm(p=2, dim=1)
-        velocity_dists = (predicted_velocities - target_velocities).norm(p=2, dim=1)
+        # Compute matched endpoint errors
+        position_dists = torch.stack([compute_matched_distance(p, t) for p, t in zip(predicted_positions, target_positions)])
+        velocity_dists = torch.stack([compute_matched_distance(p, t) for p, t in zip(predicted_velocities, target_velocities)])
+
         position_failures = position_dists.isnan().sum().item()
         velocity_failures = velocity_dists.isnan().sum().item()
         position_aee = position_dists.nanmean().item()
         velocity_aee = velocity_dists.nanmean().item()
+
         results[mode] = {
             'from_observed': {
                 'position_aee': position_aee,
@@ -278,45 +290,32 @@ if __name__ == '__main__':
         print(f'Velocity Failures ({mode}): {velocity_failures} / {len(predicted_velocities)}')
         print()
 
-        # evaluate to which extent the simulated positions and velocities are decodable from the hidden states
+        # Evaluate latent physics
         *_, hidden_states_train, positions_train, velocities_train = compute_prediction(model, train_loader, device)
-        
-        # train data for regression
+
         X_train = hidden_states_train.view(hidden_states_train.shape[0], -1).detach().numpy()
-        # X_train = hidden_states_train.detach().numpy()
         y_train_pos = positions_train.detach().numpy()
         y_train_vel = velocities_train.detach().numpy()
 
-        # test data for regression
         X_test = hidden_states.view(hidden_states.shape[0], -1).detach().numpy()
-        # X_test = hidden_states.detach().numpy()
         y_test_pos = positions.detach().numpy()
         y_test_vel = velocities.detach().numpy()
 
-        # print(f'X_train shape: {X_train.shape}')
-        # print(f'X_test shape: {X_test.shape}')
-
-        # train regression model
         scaler = StandardScaler()
         X_train = scaler.fit_transform(X_train)
-        # pca = PCA(n_components=512)
-        # X_train = pca.fit_transform(X_train)
-        # reg_pos = Ridge(alpha=50).fit(X_train, y_train_pos)
-        # reg_vel = Ridge(alpha=50).fit(X_train, y_train_vel)
 
-        reg_pos = LinearRegression().fit(X_train, y_train_pos)
-        reg_vel = LinearRegression().fit(X_train, y_train_vel)
+        reg_pos = Ridge(alpha=100.0).fit(X_train, y_train_pos)
+        reg_vel = Ridge(alpha=100.0).fit(X_train, y_train_vel)
 
         X_test = scaler.transform(X_test)
-        # X_test = pca.transform(X_test)
         y_pred_pos = reg_pos.predict(X_test)
         y_pred_vel = reg_vel.predict(X_test)
 
-        # calculate metrics
         position_r2 = r2_score(y_test_pos, y_pred_pos)
         velocity_r2 = r2_score(y_test_vel, y_pred_vel)
         position_aee = (torch.tensor(y_pred_pos) - torch.tensor(y_test_pos)).norm(p=2, dim=1).mean().item()
         velocity_aee = (torch.tensor(y_pred_vel) - torch.tensor(y_test_vel)).norm(p=2, dim=1).mean().item()
+
         results[mode]['from_latent'] = {
             'position_r2': position_r2,
             'velocity_r2': velocity_r2,
@@ -328,7 +327,7 @@ if __name__ == '__main__':
         print(f'Average Velocity R2 ({mode}): {velocity_r2}')
         print(f'Average Position Endpoint Error ({mode}): {position_aee}')
         print(f'Average Velocity Endpoint Error ({mode}): {velocity_aee}')
-        
+
         y_pred_pos = reg_pos.predict(X_train)
         y_pred_vel = reg_vel.predict(X_train)
         position_r2 = r2_score(y_train_pos, y_pred_pos)
@@ -341,7 +340,7 @@ if __name__ == '__main__':
         print(f'Average Train Velocity Endpoint Error ({mode}): {velocity_aee}')
         print()
 
-    # Save results to a JSON file
+    # Save results to JSON
     os.makedirs(os.path.join(args.model_dir, 'physics'), exist_ok=True)
     with open(os.path.join(args.model_dir, 'physics', 'evaluation_results.json'), 'w') as f:
         json.dump(results, f, indent=4)
