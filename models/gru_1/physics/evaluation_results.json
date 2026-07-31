@@ -1,34 +1,34 @@
 {
     "frame": {
         "from_observed": {
-            "position_aee": 12.717523687037989,
-            "velocity_aee": 19.569666557292262,
-            "position_total": 1140,
-            "velocity_total": 1139,
-            "position_failures": 0,
-            "velocity_failures": 0
+            "position_aee": 4.850196890042362,
+            "velocity_aee": 25.035239068176164,
+            "position_total": 380,
+            "velocity_total": 379,
+            "position_failures": 8,
+            "velocity_failures": 12
         },
         "from_latent": {
-            "position_r2": 0.9999999999979167,
-            "velocity_r2": 0.9999999999947892,
-            "position_aee": 9.047388883426601e-05,
-            "velocity_aee": 1.0779286386861967e-05
+            "position_r2": 0.971376480762519,
+            "velocity_r2": 0.9063063552064327,
+            "position_aee": 9.440986306104824,
+            "velocity_aee": 2.415731515356133
         }
     },
     "trajectory": {
         "from_observed": {
-            "position_aee": 46.59440502679572,
-            "velocity_aee": 34.42354781959767,
-            "position_total": 1140,
-            "velocity_total": 1139,
-            "position_failures": 0,
-            "velocity_failures": 0
+            "position_aee": 38.32305542497531,
+            "velocity_aee": 33.01861220103944,
+            "position_total": 380,
+            "velocity_total": 379,
+            "position_failures": 60,
+            "velocity_failures": 72
         },
         "from_latent": {
-            "position_r2": 0.9999999999969011,
-            "velocity_r2": 0.9999999999820072,
-            "position_aee": 0.0001047632430727363,
-            "velocity_aee": 1.8978272486551708e-05
+            "position_r2": 0.9611902606221367,
+            "velocity_r2": 0.9001594029738802,
+            "position_aee": 11.106906108476315,
+            "velocity_aee": 2.601214482958718
         }
     }
 }
