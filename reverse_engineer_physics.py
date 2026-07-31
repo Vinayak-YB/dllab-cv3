@@ -87,7 +87,6 @@ def extract_trajectories(model, dataloader, device, rollout_steps, fm_steps):
             current_context = torch.cat([current_context[:, 1:], pred_next.unsqueeze(1)], dim=1)
 
         pred_seq = torch.stack(rollout_states, dim=1)
-        # Automatic handling for 4-dim (Bouncing Ball) or 8-dim (Billiard) state shapes
         gt_seq = torch.cat([pos, vel], dim=-1).float()
 
         all_pred_states.append(pred_seq)
@@ -96,12 +95,7 @@ def extract_trajectories(model, dataloader, device, rollout_steps, fm_steps):
     return torch.cat(all_pred_states, dim=0), torch.cat(all_gt_states, dim=0)
 
 
-# ==========================================
-# ENVIRONMENT-SPECIFIC PHYSICAL METRICS
-# ==========================================
-
 def evaluate_bouncing_ball(pred_states, gt_states):
-    """Calculates Constant Gravity via median acceleration (Delta V)."""
     def get_accel_medians(states):
         v = states[..., 2:4]
         a = v[:, 1:] - v[:, :-1]
@@ -120,13 +114,10 @@ def evaluate_bouncing_ball(pred_states, gt_states):
 
 
 def evaluate_billiard(pred_states, gt_states):
-    """Calculates Conservation of Linear Momentum (P = v1 + v2)."""
     def get_momentum_std(states):
-        # states = [x1, y1, x2, y2, vx1, vy1, vx2, vy2]
         v = states[..., 4:8]
-        px = v[..., 0] + v[..., 2]  # vx1 + vx2
-        py = v[..., 1] + v[..., 3]  # vy1 + vy2
-        # Target: Std Dev of total P over time should be close to 0 (constant)
+        px = v[..., 0] + v[..., 2]
+        py = v[..., 1] + v[..., 3]
         std_px = torch.mean(torch.std(px, dim=1)).item()
         std_py = torch.mean(torch.std(py, dim=1)).item()
         return std_px, std_py
@@ -144,7 +135,6 @@ def evaluate_billiard(pred_states, gt_states):
 
 
 def evaluate_magnetic_wells(pred_states, gt_states):
-    """Calculates Continuous Force Field Adherence (MSE on accelerations)."""
     pred_v = pred_states[..., 2:4]
     gt_v = gt_states[..., 2:4]
 
@@ -153,7 +143,7 @@ def evaluate_magnetic_wells(pred_states, gt_states):
 
     mse_a = torch.nn.functional.mse_loss(pred_a, gt_a).item()
     var_gt = torch.var(gt_a).item()
-    r2_a = 1.0 - (mse_a / (var_gt + 1e-8))  # R^2 Score
+    r2_a = 1.0 - (mse_a / (var_gt + 1e-8))
 
     results = {
         "Metric": ["Force Field Accuracy (R^2 Score)", "Mean Squared Error (MSE)"],
@@ -189,7 +179,7 @@ def main(args):
     pred_states, gt_states = extract_trajectories(model, dataloader, device, args.rollout_steps, args.fm_steps)
 
     print("\n" + "=" * 60)
-    print(f"🔬 REVERSE ENGINEERING PHYSICS: {args.env.upper()} 🔬")
+    print(f"REVERSE ENGINEERING PHYSICS: {args.env.upper()}")
     print("=" * 60)
 
     if args.env == "bouncing_ball":
@@ -201,15 +191,13 @@ def main(args):
     else:
         raise ValueError(f"Unknown environment: {args.env}")
 
-    # Build and print tabular DataFrame
     df = pd.DataFrame(results)
     print(df.to_string(index=False))
     print("=" * 60 + "\n")
 
-    # Save CSV output inside the model directory
     out_csv = os.path.join(args.model_dir, f"physics_probe_results_{args.env}.csv")
     df.to_csv(out_csv, index=False)
-    print(f"[*] Tabular report saved to: {out_csv}")
+    print(f"Tabular report saved to: {out_csv}")
 
 
 if __name__ == "__main__":
