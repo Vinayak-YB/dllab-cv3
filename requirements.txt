@@ -10,3 +10,6 @@ opencv-python
 ffmpeg
 ipykernel
 einops
+scikit-learn
+scipy
+pillow
