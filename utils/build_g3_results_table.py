@@ -9,6 +9,10 @@ SPLIT_FILES = [
     "physics/evaluation_results_test_ood_gravity.json",
 ]
 
+TEST_GRAVITY = {
+    "test_id": -1.0,
+    "test_ood_gravity": -3.0,
+}
 
 def load_json(path):
     with open(path, "r") as f:
@@ -129,16 +133,16 @@ def write_markdown(path, rows):
 
     lines.append("# Controlled gravity generalization\n")
     lines.append(
-        "All runs use paired datasets with identical generation settings, "
-        "except for the swapped ID/OOD gravity values.\n"
+        "All models are evaluated on the same shared test sets: "
+        "gravity -1 and gravity -3.\n"
     )
 
     lines.append(
-        "| Model | Run | Train g | Shift | Test g | "
-        "1-step Pos AEE | Rollout Pos AEE | Rollout Vel AEE |"
+        "| Model | Run | Train g | Domain | Test g | "
+        "1-step Pos AEE | Rollout Pos AEE |"
     )
     lines.append(
-        "|---|---|---:|---|---:|---:|---:|---:|"
+        "|---|---|---:|---|---:|---:|---:|"
     )
 
     for row in rows:
@@ -149,8 +153,7 @@ def write_markdown(path, rows):
             f"| {row['shift']} "
             f"| {row['test_gravity']:.1f} "
             f"| {format_float(row['one_step_position_aee'])} "
-            f"| {format_float(row['rollout_position_aee'])} "
-            f"| {format_float(row['rollout_velocity_aee'])} |"
+            f"| {format_float(row['rollout_position_aee'])} |"
         )
 
     with open(path, "w") as file:

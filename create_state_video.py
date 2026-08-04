@@ -135,13 +135,22 @@ def get_rollout_predictions(model, dataloader, device, max_sequences=1):
 
 def render_state_frame(state, width=128, height=128, radius=5):
     x, y = state[:2]
-    yy, xx = np.ogrid[:height, :width]
 
-    dist2 = (xx - x) ** 2 + (yy - y) ** 2
+    # Physical y=0 is at the bottom, image y=0 is at the top.
+    image_y = height - y
+
+    yy, xx = np.ogrid[:height, :width]
+    dist2 = (xx - x) ** 2 + (yy - image_y) ** 2
     mask = dist2 <= radius ** 2
 
-    image = np.ones((height, width, 3), dtype=np.uint8) * 255
-    image[mask] = np.array([0, 0, 255], dtype=np.uint8)
+    image = np.zeros(
+        (height, width, 3),
+        dtype=np.uint8,
+    )
+    image[mask] = np.array(
+        [255, 255, 255],
+        dtype=np.uint8,
+    )
 
     return image
 
