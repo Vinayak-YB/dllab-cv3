@@ -334,9 +334,17 @@ def physics_from_observed_frames_rollout(target_frames, predicted_frames, thresh
         pred_step = predicted_frames[:, step]
         tgt_step = target_frames[:, step]
 
+        pred_positions = extract_positions_from_frames_robust(
+            pred_step,
+            num_objects=1,
+            threshold=threshold,
+        )
 
-        pred_positions = extract_positions_from_frames(pred_step, threshold=threshold)
-        tgt_positions = extract_positions_from_frames(tgt_step, threshold=threshold)
+        tgt_positions = extract_positions_from_frames_robust(
+            tgt_step,
+            num_objects=1,
+            threshold=threshold,
+        )
 
 
         position_dists = torch.norm(pred_positions - tgt_positions, dim=1)
