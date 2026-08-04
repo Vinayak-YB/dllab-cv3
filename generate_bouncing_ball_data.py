@@ -9,16 +9,26 @@ from PIL import Image, ImageDraw
 
 
 def render_circle(width, height, x, y, radius, filename):
-    img = Image.new("RGB", (width, height), color="white")
-    draw = ImageDraw.Draw(img)
+    """Render a bright ball on a dark background."""
+
+    image = Image.new(
+        mode="L",
+        size=(width, height),
+        color=0,
+    )
+    draw = ImageDraw.Draw(image)
 
     left = x - radius
     top = height - (y + radius)
     right = x + radius
     bottom = height - (y - radius)
 
-    draw.ellipse([left, top, right, bottom], fill="blue")
-    img.save(filename)
+    draw.ellipse(
+        [left, top, right, bottom],
+        fill=255,
+    )
+
+    image.save(filename)
 
 
 def ensure_clean_dir(path, overwrite=False):

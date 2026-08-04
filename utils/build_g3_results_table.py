@@ -116,49 +116,94 @@ def format_float(value):
         return ""
     return f"{value:.4f}"
 
+def get_test_gravity(split, train_gravity, ood_gravity):
+    if split == "test_ood_gravity":
+        return ood_gravity
+
+    return train_gravity
+
+
+def get_shift_name(split):
+    mapping = {
+        "test_id": "ID",
+        "test_ood_gravity": "OOD gravity",
+        "test_ood_velocity": "OOD velocity",
+        "test_ood_position": "OOD position",
+    }
+
+    return mapping.get(split, split)
 
 def write_markdown(path, rows):
     lines = []
-    lines.append("# Evaluation summary\n")
-    lines.append("Comparable metrics across models use observed-space AEE for one-step and rollout.\n")
-    lines.append("| Model | Run | Split | 1-step Pos AEE | 1-step Vel AEE | Rollout Pos AEE | Rollout Vel AEE |")
-    lines.append("|---|---|---|---:|---:|---:|---:|")
 
-    for r in rows:
+    lines.append("# Controlled gravity generalization\n")
+    lines.append(
+        "All runs use paired datasets with identical generation settings, "
+        "except for the swapped ID/OOD gravity values.\n"
+    )
+
+    lines.append(
+        "| Model | Run | Train g | Shift | Test g | "
+        "1-step Pos AEE | Rollout Pos AEE | Rollout Vel AEE |"
+    )
+    lines.append(
+        "|---|---|---:|---|---:|---:|---:|---:|"
+    )
+
+    for row in rows:
         lines.append(
-            f"| {r['model_type']} | {r['model_run']} | {r['split']} | "
-            f"{format_float(r['one_step_position_aee'])} | {format_float(r['one_step_velocity_aee'])} | "
-            f"{format_float(r['rollout_position_aee'])} | {format_float(r['rollout_velocity_aee'])} |"
+            f"| {row['model_type']} "
+            f"| {row['model_run']} "
+            f"| {row['train_gravity']:.1f} "
+            f"| {row['shift']} "
+            f"| {row['test_gravity']:.1f} "
+            f"| {format_float(row['one_step_position_aee'])} "
+            f"| {format_float(row['rollout_position_aee'])} "
+            f"| {format_float(row['rollout_velocity_aee'])} |"
         )
 
-    with open(path, "w") as f:
-        f.write("\n".join(lines))
+    with open(path, "w") as file:
+        file.write("\n".join(lines))
 
 
 def main(args):
     os.makedirs(args.out_dir, exist_ok=True)
 
     configs = {
-        "recurrent_id_v2": {
+        "recurrent_neg1": {
             "model_type": "recurrent",
+            "train_gravity": -1.0,
+            "ood_gravity": -3.0,
             "files": SPLIT_FILES,
         },
-        "state_mlp_v2": {
+        "state_mlp_neg1": {
             "model_type": "state_mlp",
+            "train_gravity": -1.0,
+            "ood_gravity": -3.0,
             "files": SPLIT_FILES,
         },
-
-        # New g=-3 environment runs
-        "recurrent_g3": {
-            "model_type": "recurrent",
-            "files": SPLIT_FILES,
-        },
-        "state_mlp_g3": {
-            "model_type": "state_mlp",
-            "files": SPLIT_FILES,
-        },
-        "latent_flow_g3_genloss": {
+        "latent_flow_neg1_genloss": {
             "model_type": "latent_flow",
+            "train_gravity": -1.0,
+            "ood_gravity": -3.0,
+            "files": SPLIT_FILES,
+        },
+        "recurrent_neg3": {
+            "model_type": "recurrent",
+            "train_gravity": -3.0,
+            "ood_gravity": -1.0,
+            "files": SPLIT_FILES,
+        },
+        "state_mlp_neg3": {
+            "model_type": "state_mlp",
+            "train_gravity": -3.0,
+            "ood_gravity": -1.0,
+            "files": SPLIT_FILES,
+        },
+        "latent_flow_neg3_genloss": {
+            "model_type": "latent_flow",
+            "train_gravity": -3.0,
+            "ood_gravity": -1.0,
             "files": SPLIT_FILES,
         },
     }
@@ -195,6 +240,13 @@ def main(args):
                 "model_run": run_name,
                 "model_type": cfg["model_type"],
                 "split": split,
+                "shift": get_shift_name(split),
+                "train_gravity": cfg["train_gravity"],
+                "test_gravity": get_test_gravity(
+                    split,
+                    cfg["train_gravity"],
+                    cfg["ood_gravity"],
+                ),
             }
 
             if cfg["model_type"] == "recurrent":
@@ -238,7 +290,13 @@ def main(args):
             "rollout_velocity_aee",
         ]
         write_csv(os.path.join(args.out_dir, "evaluation_summary_comparable_metrics.csv"), comparable_rows, cmp_fieldnames)
-        write_markdown(os.path.join(args.out_dir, "evaluation_summary.md"), comparable_rows)
+        write_markdown(
+            os.path.join(
+                args.out_dir,
+                "gravity_generalization_summary.md",
+            ),
+            comparable_rows,
+        )
 
     if missing_files:
         with open(os.path.join(args.out_dir, "missing_files.txt"), "w") as f:

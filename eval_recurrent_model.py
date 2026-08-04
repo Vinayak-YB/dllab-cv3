@@ -76,44 +76,55 @@ def split_sequence_dirs(sequence_dirs, val_ratio=0.1, seed=42):
 
 
 
-def estimate_ball_center(frame_tensor, threshold=0.5, invert=False):
+def estimate_ball_center(frame_tensor, threshold=0.5):
+    """
+    Estimate the center of a bright ball on a dark background.
+
+    All structured datasets are expected to use the canonical representation:
+    background near 0, foreground near 1.
+    """
+
     if frame_tensor.dim() == 3:
         frame = frame_tensor.squeeze(0)
     else:
         frame = frame_tensor
 
-
-    if invert:
-        mask = frame > threshold
-    else:
-        mask = frame < threshold
-
-
+    mask = frame > threshold
     mass = mask.sum()
 
-
     if mass == 0:
-        return torch.tensor([torch.nan, torch.nan], dtype=torch.float32)
+        return torch.tensor(
+            [torch.nan, torch.nan],
+            dtype=torch.float32,
+        )
 
-
-    h, w = frame.shape
+    height, width = frame.shape
     ys, xs = torch.meshgrid(
-        torch.arange(h, dtype=torch.float32),
-        torch.arange(w, dtype=torch.float32),
-        indexing="ij"
+        torch.arange(height, dtype=torch.float32),
+        torch.arange(width, dtype=torch.float32),
+        indexing="ij",
+    )
+
+    mask_float = mask.float()
+
+    center_x = (xs * mask_float).sum() / mass.float()
+    center_y = (ys * mask_float).sum() / mass.float()
+
+    return torch.tensor(
+        [center_x, center_y],
+        dtype=torch.float32,
     )
 
 
-    center_x = (xs * mask.float()).sum() / mass.float()
-    center_y = (ys * mask.float()).sum() / mass.float()
+def extract_positions_from_frames(frames, threshold=0.5):
+    positions = [
+        estimate_ball_center(
+            frame,
+            threshold=threshold,
+        )
+        for frame in frames
+    ]
 
-
-    return torch.tensor([center_x, center_y], dtype=torch.float32)
-
-
-
-def extract_positions_from_frames(frames, threshold=0.5, invert=False):
-    positions = [estimate_ball_center(frame, threshold=threshold, invert=invert) for frame in frames]
     return torch.stack(positions, dim=0)
 
 
@@ -278,10 +289,15 @@ def rollout_prediction(model, dataloader, device, rollout_steps):
     return target_frames, predicted_frames, hidden_states, positions, velocities
 
 
-
-def physics_from_observed_frames_one_step(target_frames, predicted_frames, threshold=0.5, invert=False):
-    pred_positions = extract_positions_from_frames(predicted_frames, threshold=threshold, invert=invert)
-    tgt_positions = extract_positions_from_frames(target_frames, threshold=threshold, invert=invert)
+def physics_from_observed_frames_one_step(target_frames, predicted_frames, threshold=0.5):
+    pred_positions = extract_positions_from_frames(
+        predicted_frames,
+        threshold=threshold,
+    )
+    tgt_positions = extract_positions_from_frames(
+        target_frames,
+        threshold=threshold,
+    )
 
 
     pred_velocities = compute_velocity_from_positions(pred_positions)
@@ -303,7 +319,7 @@ def physics_from_observed_frames_one_step(target_frames, predicted_frames, thres
 
 
 
-def physics_from_observed_frames_rollout(target_frames, predicted_frames, threshold=0.5, invert=False):
+def physics_from_observed_frames_rollout(target_frames, predicted_frames, threshold=0.5):
     _, h = target_frames.shape[:2]
 
 
@@ -317,8 +333,8 @@ def physics_from_observed_frames_rollout(target_frames, predicted_frames, thresh
         tgt_step = target_frames[:, step]
 
 
-        pred_positions = extract_positions_from_frames(pred_step, threshold=threshold, invert=invert)
-        tgt_positions = extract_positions_from_frames(tgt_step, threshold=threshold, invert=invert)
+        pred_positions = extract_positions_from_frames(pred_step, threshold=threshold)
+        tgt_positions = extract_positions_from_frames(tgt_step, threshold=threshold)
 
 
         position_dists = torch.norm(pred_positions - tgt_positions, dim=1)
@@ -596,7 +612,6 @@ def main(args):
         target_frames=target_frames,
         predicted_frames=predicted_frames,
         threshold=args.threshold,
-        invert=invert
     )
 
 
@@ -655,7 +670,6 @@ def main(args):
         target_frames=target_frames,
         predicted_frames=predicted_frames,
         threshold=args.threshold,
-        invert=invert
     )
 
 

@@ -4,7 +4,7 @@ import random
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from models.latent_flow_video_predictor import LatentFlowVideoPredictor
@@ -18,8 +18,8 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)
 
 
-def build_dataloaders(args):
-    sequence_dirs = get_sequence_dirs(args.data_dir)
+def create_frame_dataset(data_dir, args):
+    sequence_dirs = get_sequence_dirs(data_dir)
 
     dataset = FramePredictionDataset(
         sequence_dirs=sequence_dirs,
@@ -31,20 +31,19 @@ def build_dataloaders(args):
     )
 
     if len(dataset) == 0:
-        raise ValueError(f"No valid samples found in {args.data_dir}")
+        raise ValueError(f"No valid samples found in: {data_dir}")
 
-    val_size = int(len(dataset) * args.val_ratio)
-    train_size = len(dataset) - val_size
+    return dataset
 
-    if val_size == 0:
-        val_size = 1
-        train_size = len(dataset) - 1
 
-    generator = torch.Generator().manual_seed(args.seed)
-    train_dataset, val_dataset = random_split(
-        dataset,
-        [train_size, val_size],
-        generator=generator
+def build_dataloaders(args):
+    train_dataset = create_frame_dataset(
+        args.train_dir,
+        args,
+    )
+    val_dataset = create_frame_dataset(
+        args.val_dir,
+        args,
     )
 
     pin_memory = torch.cuda.is_available()
@@ -238,7 +237,8 @@ def main(args):
     )
 
     print(f"Using device: {device}")
-    print(f"Data dir: {args.data_dir}")
+    print(f"Train dir: {args.train_dir}")
+    print(f"Val dir:   {args.val_dir}")
 
     train_loader, val_loader = build_dataloaders(args)
 
@@ -351,7 +351,20 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train improved latent flow video predictor for bouncing ball")
 
-    parser.add_argument("--data_dir", type=str, default="data/bouncing_ball/train")
+    parser.add_argument(
+        "--train_dir",
+        type=str,
+        required=True,
+        help="Directory containing training trajectories.",
+    )
+
+    parser.add_argument(
+        "--val_dir",
+        type=str,
+        required=True,
+        help="Directory containing validation trajectories.",
+    )
+
     parser.add_argument("--save_dir", type=str, default="checkpoints")
     parser.add_argument("--run_name", type=str, default="latent_flow_v2")
 
@@ -362,7 +375,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--context", type=int, default=5)
     parser.add_argument("--stride", type=int, default=1)
-    parser.add_argument("--val_ratio", type=float, default=0.1)
 
     parser.add_argument("--base_channels", type=int, default=32)
     parser.add_argument("--latent_channels", type=int, default=64)
