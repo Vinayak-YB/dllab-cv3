@@ -142,7 +142,6 @@ def main(args):
     model, ckpt_args = load_model(args.model_dir, args.ckpt_name, device)
 
     context = ckpt_args.get("context", args.context)
-    invert = ckpt_args.get("invert", args.invert)
 
     sequence_dirs = get_sequence_dirs(args.data_dir)
     _, val_dirs = split_sequence_dirs(sequence_dirs, val_ratio=args.val_ratio)
@@ -154,7 +153,6 @@ def main(args):
             rollout=1,
             stride=1,
             grayscale=True,
-            invert=invert,
             return_state=False
         )
         dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
@@ -169,7 +167,6 @@ def main(args):
             sequence_dirs=val_dirs,
             context=context,
             grayscale=True,
-            invert=invert,
             return_state=False
         )
         dataloader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=args.num_workers)
@@ -186,7 +183,6 @@ def main(args):
     print("Target frames shape:", target_frames.shape)
     print("Pred min/max:", pred_frames.min().item(), pred_frames.max().item())
     print("Target min/max:", target_frames.min().item(), target_frames.max().item())
-    print("Invert:", invert)
 
     save_dir = os.path.join(args.model_dir, "videos")
     os.makedirs(save_dir, exist_ok=True)
@@ -213,7 +209,6 @@ if __name__ == "__main__":
     parser.add_argument("--mode", type=str, choices=["frame", "trajectory"], default="frame")
     parser.add_argument("--context", type=int, default=5)
     parser.add_argument("--val_ratio", type=float, default=0.1)
-    parser.add_argument("--invert", action="store_true")
 
     parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--max_frames", type=int, default=100)

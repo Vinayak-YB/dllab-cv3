@@ -282,8 +282,6 @@ if __name__ == "__main__":
     parser.add_argument("--norm_type", type=str, default=None, choices=[None, "group", "layer"])
     parser.add_argument("--norm_groups", type=int, default=None)
 
-    parser.add_argument("--invert", action="store_true", help="Invert images so the ball becomes bright on dark background")
-
     parser.add_argument("--loss_type", type=str, default="weighted_mse", choices=["mse", "l1", "weighted_mse"])
     parser.add_argument("--fg_weight", type=float, default=15.0)
     parser.add_argument("--fg_threshold", type=float, default=0.5)

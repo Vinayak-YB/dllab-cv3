@@ -7,8 +7,6 @@ import csv
 SPLIT_FILES = [
     "physics/evaluation_results_test_id.json",
     "physics/evaluation_results_test_ood_gravity.json",
-    "physics/evaluation_results_test_ood_velocity.json",
-    "physics/evaluation_results_test_ood_position.json",
 ]
 
 
@@ -116,22 +114,15 @@ def format_float(value):
         return ""
     return f"{value:.4f}"
 
-def get_test_gravity(split, train_gravity, ood_gravity):
-    if split == "test_ood_gravity":
-        return ood_gravity
 
-    return train_gravity
+def get_test_gravity(split):
+    return TEST_GRAVITY[split]
 
 
-def get_shift_name(split):
-    mapping = {
-        "test_id": "ID",
-        "test_ood_gravity": "OOD gravity",
-        "test_ood_velocity": "OOD velocity",
-        "test_ood_position": "OOD position",
-    }
-
-    return mapping.get(split, split)
+def get_shift_name(train_gravity, test_gravity):
+    if train_gravity == test_gravity:
+        return "ID"
+    return "OOD gravity"
 
 def write_markdown(path, rows):
     lines = []
@@ -236,16 +227,17 @@ def main(args):
             data = load_json(json_path)
             split = extract_split_name(data, json_path)
 
+            test_gravity = get_test_gravity(split)
+
             row = {
                 "model_run": run_name,
                 "model_type": cfg["model_type"],
                 "split": split,
-                "shift": get_shift_name(split),
                 "train_gravity": cfg["train_gravity"],
-                "test_gravity": get_test_gravity(
-                    split,
+                "test_gravity": test_gravity,
+                "shift": get_shift_name(
                     cfg["train_gravity"],
-                    cfg["ood_gravity"],
+                    test_gravity,
                 ),
             }
 
@@ -265,10 +257,11 @@ def main(args):
                     "model_type": row["model_type"],
                     "model_run": row["model_run"],
                     "split": row["split"],
+                    "shift": row["shift"],
+                    "train_gravity": row["train_gravity"],
+                    "test_gravity": row["test_gravity"],
                     "one_step_position_aee": row["one_step_position_aee"],
-                    "one_step_velocity_aee": row["one_step_velocity_aee"],
                     "rollout_position_aee": row["rollout_position_aee"],
-                    "rollout_velocity_aee": row["rollout_velocity_aee"],
                 }
             )
 
@@ -284,10 +277,11 @@ def main(args):
             "model_type",
             "model_run",
             "split",
+            "shift",
+            "train_gravity",
+            "test_gravity",
             "one_step_position_aee",
-            "one_step_velocity_aee",
             "rollout_position_aee",
-            "rollout_velocity_aee",
         ]
         write_csv(os.path.join(args.out_dir, "evaluation_summary_comparable_metrics.csv"), comparable_rows, cmp_fieldnames)
         write_markdown(

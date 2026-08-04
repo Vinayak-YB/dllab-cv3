@@ -19,6 +19,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from models.rnn_baseline import BaselineVideoPredictor
 from utils.dataset import FramePredictionDataset, get_sequence_dirs
+from eval_latent_flow import extract_positions_from_frames_robust
 
 
 
@@ -135,12 +136,11 @@ def compute_velocity_from_positions(positions):
 
 
 class FixedRolloutDataset(Dataset):
-    def __init__(self, sequence_dirs, context=5, rollout_steps=10, grayscale=True, invert=False, return_state=True):
+    def __init__(self, sequence_dirs, context=5, rollout_steps=10, grayscale=True, return_state=True):
         self.samples = []
         self.context = context
         self.rollout_steps = rollout_steps
         self.grayscale = grayscale
-        self.invert = invert
         self.return_state = return_state
 
 
@@ -150,7 +150,6 @@ class FixedRolloutDataset(Dataset):
             rollout=rollout_steps,
             stride=1,
             grayscale=grayscale,
-            invert=invert,
             return_state=return_state,
         )
 
@@ -290,12 +289,15 @@ def rollout_prediction(model, dataloader, device, rollout_steps):
 
 
 def physics_from_observed_frames_one_step(target_frames, predicted_frames, threshold=0.5):
-    pred_positions = extract_positions_from_frames(
+    pred_positions = extract_positions_from_frames_robust(
         predicted_frames,
+        num_objects=1,
         threshold=threshold,
     )
-    tgt_positions = extract_positions_from_frames(
+
+    tgt_positions = extract_positions_from_frames_robust(
         target_frames,
+        num_objects=1,
         threshold=threshold,
     )
 
@@ -494,27 +496,25 @@ def physics_from_latent_rollout(train_hidden, train_pos, train_vel, test_hidden,
 
 
 
-def build_frame_loader(sequence_dirs, context, invert, num_workers, batch_size=64, shuffle=False):
+def build_frame_loader(sequence_dirs, context, num_workers, batch_size=64, shuffle=False):
     dataset = FramePredictionDataset(
         sequence_dirs=sequence_dirs,
         context=context,
         rollout=1,
         stride=1,
         grayscale=True,
-        invert=invert,
         return_state=True
     )
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
 
 
 
-def build_rollout_loader(sequence_dirs, context, invert, rollout_steps, num_workers, batch_size=32):
+def build_rollout_loader(sequence_dirs, context, rollout_steps, num_workers, batch_size=32):
     dataset = FixedRolloutDataset(
         sequence_dirs=sequence_dirs,
         context=context,
         rollout_steps=rollout_steps,
         grayscale=True,
-        invert=invert,
         return_state=True
     )
     return DataLoader(dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
@@ -557,7 +557,6 @@ def main(args):
 
 
     context = ckpt_args.get("context", args.context)
-    invert = ckpt_args.get("invert", args.invert)
 
 
     probe_train_dirs, test_dirs, split_mode = resolve_eval_dirs(args)
@@ -576,7 +575,6 @@ def main(args):
             "probe_train_dir": args.probe_train_dir,
             "split_mode": split_mode,
             "context": context,
-            "invert": invert,
             "threshold": args.threshold,
             "rollout_steps": args.rollout_steps,
             "seed": args.seed,
@@ -588,7 +586,6 @@ def main(args):
     probe_train_loader = build_frame_loader(
         sequence_dirs=probe_train_dirs,
         context=context,
-        invert=invert,
         num_workers=args.num_workers,
         batch_size=64,
         shuffle=True,
@@ -596,7 +593,6 @@ def main(args):
     test_loader = build_frame_loader(
         sequence_dirs=test_dirs,
         context=context,
-        invert=invert,
         num_workers=args.num_workers,
         batch_size=64,
         shuffle=False,
@@ -654,7 +650,6 @@ def main(args):
     rollout_test_loader = build_rollout_loader(
         sequence_dirs=test_dirs,
         context=context,
-        invert=invert,
         rollout_steps=args.rollout_steps,
         num_workers=args.num_workers,
         batch_size=32,
@@ -734,7 +729,6 @@ if __name__ == "__main__":
     parser.add_argument("--context", type=int, default=5)
     parser.add_argument("--val_ratio", type=float, default=0.1)
     parser.add_argument("--threshold", type=float, default=0.5)
-    parser.add_argument("--invert", action="store_true")
     parser.add_argument("--rollout_steps", type=int, default=10)
 
 

@@ -16,7 +16,6 @@ class FramePredictionDataset(Dataset):
         stride=1,
         transform=None,
         grayscale=True,
-        invert=False,
         return_state=False
     ):
         self.sequence_dirs = sequence_dirs
@@ -25,7 +24,6 @@ class FramePredictionDataset(Dataset):
         self.stride = stride
         self.transform = transform
         self.grayscale = grayscale
-        self.invert = invert
         self.return_state = return_state
         self.samples = []
 
@@ -94,9 +92,6 @@ class FramePredictionDataset(Dataset):
         else:
             img = self._default_to_tensor(img)
 
-        if self.invert:
-            img = 1.0 - img
-
         return img
 
     @staticmethod
@@ -116,14 +111,12 @@ class TrajectoryPredictionDataset(Dataset):
         context=5,
         transform=None,
         grayscale=True,
-        invert=False,
         return_state=False
     ):
         self.sequence_dirs = sequence_dirs
         self.context = context
         self.transform = transform
         self.grayscale = grayscale
-        self.invert = invert
         self.return_state = return_state
         self.samples = []
 
@@ -188,9 +181,6 @@ class TrajectoryPredictionDataset(Dataset):
             img = self.transform(img)
         else:
             img = self._default_to_tensor(img)
-
-        if self.invert:
-            img = 1.0 - img
 
         return img
 
