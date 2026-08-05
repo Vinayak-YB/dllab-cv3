@@ -1,0 +1,129 @@
+{
+    "metadata": {
+        "model_type": "sequence_encoder_decoder",
+        "model_dir": "models/envv2_baseline_gru",
+        "ckpt_name": "best.ckpt",
+        "data_dir": "data/env_v2/baseline/test",
+        "context": 5,
+        "rollout_steps": 10,
+        "eval_stride": 5,
+        "num_objects": 1,
+        "threshold": 0.5,
+        "min_mass": 3,
+        "fallback_thresholds": [
+            0.4,
+            0.3,
+            0.2,
+            0.15,
+            0.1,
+            0.05
+        ],
+        "topk_fallback": true,
+        "topk_ratio": 0.01,
+        "seed": 42,
+        "test_trajectories": 50
+    },
+    "one_step": {
+        "from_observed": {
+            "position_aee": 0.5877127647399902,
+            "velocity_aee": 0.5877127647399902,
+            "position_failures": 0,
+            "velocity_failures": 0,
+            "position_total": 950,
+            "velocity_total": 950,
+            "num_objects": 1
+        }
+    },
+    "rollout": {
+        "from_observed": {
+            "aggregate": {
+                "position_aee": 2.2903802394866943,
+                "velocity_aee": 1.1250646114349365,
+                "position_failures": 0,
+                "velocity_failures": 0,
+                "position_total": 9000,
+                "velocity_total": 8100,
+                "num_objects": 1
+            },
+            "per_step": {
+                "1": {
+                    "position_aee": 0.5870205163955688,
+                    "position_failures": 0,
+                    "position_total": 900
+                },
+                "2": {
+                    "position_aee": 0.7848199605941772,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 0.6422242522239685,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "3": {
+                    "position_aee": 1.077264428138733,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 0.7148625254631042,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "4": {
+                    "position_aee": 1.4525582790374756,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 0.8252677917480469,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "5": {
+                    "position_aee": 1.8041496276855469,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 0.9057203531265259,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "6": {
+                    "position_aee": 2.1987526416778564,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 0.9732719659805298,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "7": {
+                    "position_aee": 2.6680233478546143,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 1.1306183338165283,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "8": {
+                    "position_aee": 3.2884883880615234,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 1.4014290571212769,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "9": {
+                    "position_aee": 4.136845588684082,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 1.7255606651306152,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                },
+                "10": {
+                    "position_aee": 4.90587854385376,
+                    "position_failures": 0,
+                    "position_total": 900,
+                    "velocity_aee": 1.8066264390945435,
+                    "velocity_failures": 0,
+                    "velocity_total": 900
+                }
+            }
+        }
+    }
+}
