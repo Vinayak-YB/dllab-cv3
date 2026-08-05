@@ -15,36 +15,3 @@ Comparable observed-space AEE for recurrent baselines and latent flow.
 | billiard | latent_flow | latent_flow_billiard_genloss_e100_gen03_steps8_state02 | 0.0268 | 0.0268 | 0.0505 | 0.0714 |
 
 
-The recurrent baseline results and latent-flow results were produced with different training/evaluation scripts.
-
-## Latent-flow training details
-
-Latent flow was trained with generated-frame supervision. This was important because the first billiard run without 
-stronger generated-frame supervision produced noisy extra blobs. The final billiard run used stronger supervision and 
-produced clean qualitative rollouts with both balls preserved.
-
-Main latent-flow runs:
-
-```text
-baseline:
-  run: latent_flow_baseline_genloss_e30
-  data_dir: physics-data-v3
-  epochs: 30
-  generated_frame_loss_weight: 0.2
-  generation_loss_steps: 5
-
-magnetic_wells:
-  run: latent_flow_magwells_genloss_e30
-  data_dir: physics-data-magnetic_wells
-  epochs: 30
-  generated_frame_loss_weight: 0.2
-  generation_loss_steps: 5
-
-billiard:
-  run: latent_flow_billiard_genloss_e100_gen03_steps8_state02
-  data_dir: physics-data-billiard
-  epochs: 100
-  generated_frame_loss_weight: 0.3
-  generation_loss_steps: 8
-  state_loss_weight: 0.2
-  num_objects: 2
