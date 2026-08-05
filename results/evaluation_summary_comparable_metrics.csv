@@ -1,0 +1,13 @@
+model_type,model_run,split,shift,train_gravity,test_gravity,one_step_position_aee,rollout_position_aee
+recurrent,recurrent_neg1,test_id,ID,-1.0,-1.0,0.4928133189678192,7.088770389556885
+recurrent,recurrent_neg1,test_ood_gravity,OOD gravity,-1.0,-3.0,1.9278217554092407,18.856325149536133
+recurrent,recurrent_neg3,test_id,OOD gravity,-3.0,-1.0,2.3976829051971436,16.207395553588867
+recurrent,recurrent_neg3,test_ood_gravity,ID,-3.0,-3.0,0.6296115517616272,13.951189994812012
+state_mlp,state_mlp_neg1,test_id,ID,-1.0,-1.0,0.40012219548225403,4.128407001495361
+state_mlp,state_mlp_neg1,test_ood_gravity,OOD gravity,-1.0,-3.0,1.723970651626587,9.20722770690918
+state_mlp,state_mlp_neg3,test_id,OOD gravity,-3.0,-1.0,1.4536268711090088,8.550049781799316
+state_mlp,state_mlp_neg3,test_ood_gravity,ID,-3.0,-3.0,0.5073802471160889,4.277978420257568
+latent_flow,latent_flow_neg1_genloss,test_id,ID,-1.0,-1.0,1.110689640045166,12.273621559143066
+latent_flow,latent_flow_neg1_genloss,test_ood_gravity,OOD gravity,-1.0,-3.0,2.3505609035491943,20.399728775024414
+latent_flow,latent_flow_neg3_genloss,test_id,OOD gravity,-3.0,-1.0,2.0889194011688232,17.716705322265625
+latent_flow,latent_flow_neg3_genloss,test_ood_gravity,ID,-3.0,-3.0,1.1484743356704712,14.233656883239746
