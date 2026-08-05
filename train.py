@@ -8,6 +8,7 @@ import numpy as np
 import lightning.pytorch as pl
 from lightning.pytorch.callbacks import LearningRateMonitor, ModelCheckpoint
 from lightning.pytorch.loggers.tensorboard import TensorBoardLogger
+from pathlib import Path
 from torch.utils.data import DataLoader
 from torchvision import transforms
 
@@ -55,10 +56,24 @@ def global_to_local_(args: argparse.Namespace) -> None:
 
 def train(args: argparse.Namespace):
     # Data preparation
-    sequence_dirs = [os.path.join(args.data_dir, f'traj-{i:03d}') for i in range(args.n_trajectories)]
-    num_val_trajectories = int(len(sequence_dirs) * args.val_pct)
-    train_dirs = sequence_dirs[:-num_val_trajectories]
-    val_dirs = sequence_dirs[-num_val_trajectories:]
+    pl.seed_everything(args.seed, workers=True)
+    train_dirs = sorted(
+        str(path)
+        for path in Path(args.train_dir).glob("traj-*")
+        if path.is_dir()
+    )
+
+    val_dirs = sorted(
+        str(path)
+        for path in Path(args.val_dir).glob("traj-*")
+        if path.is_dir()
+    )
+
+    if not train_dirs:
+        raise ValueError(f"No training trajectories found in {args.train_dir}")
+
+    if not val_dirs:
+        raise ValueError(f"No validation trajectories found in {args.val_dir}")
 
     transform = transforms.Compose([
         transforms.ToTensor(),
@@ -108,20 +123,21 @@ def train(args: argparse.Namespace):
         teacher_forcing_schedule=schedule_fn,
     )
 
-    previous_versions = [int(exp.split('_')[-1]) for exp in glob(os.path.join('models', f'{args.rnn_type}_*'))]
-    version = 0 if len(previous_versions) == 0 else max(previous_versions) + 1
-    exp_dir = os.path.join('models', f'{args.rnn_type}_{version}')
+    exp_dir = os.path.join("models", args.run_name)
 
     logger = TensorBoardLogger(save_dir=exp_dir, name='tensorboard', version='')
 
     callbacks = [
         LearningRateMonitor(logging_interval='step'),
         ModelCheckpoint(
-            dirpath=os.path.join(exp_dir, 'checkpoints'),
-            save_top_k=-1,
+            dirpath=os.path.join(exp_dir, "checkpoints"),
+            filename="best",
+            monitor="Loss/valid",
+            mode="min",
+            save_top_k=1,
             save_last=True,
-            every_n_epochs=args.save_epochs,
             save_weights_only=True,
+            auto_insert_metric_name=False,
         ),
     ]
 
@@ -155,13 +171,14 @@ def train(args: argparse.Namespace):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train a model for frame prediction.')
-    parser.add_argument('--data_dir', type=str, default='physics-data', help='Directory containing the dataset.')
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for training.')
     parser.add_argument('--num_workers', type=int, default=6, help='Number of workers for data loading.')
     parser.add_argument('--context', type=int, default=5, help='Number of input frames before target.')
     parser.add_argument('--rollout', type=int, default=1, help='Number of frames to roll out during training.')
-    parser.add_argument('--val_pct', type=float, default=0.1, help='Percentage of data to use for validation.')
-    parser.add_argument('--n_trajectories', type=int, default=1000, help='Number of trajectories to use.')
+    parser.add_argument("--train_dir", type=str, required=True)
+    parser.add_argument("--val_dir", type=str, required=True)
+    parser.add_argument("--run_name", type=str, required=True)
+    parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument('--rnn_type', type=str, default='lstm', choices=['lstm', 'gru', 'stt'], help='Type of RNN to use.')
     parser.add_argument('--hidden_channels', type=int, nargs='+', default=[32], help='Hidden channels of the RNN.')

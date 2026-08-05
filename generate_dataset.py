@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import cv2
 import matplotlib
+import shutil
 from tqdm import tqdm
 
 matplotlib.use('Agg')  # Use non-interactive backend
@@ -109,14 +110,42 @@ def simulate_magnetic_wells(num_frames=100, img_size=128, radius=8, gravity_scal
                 
     return frames, np.array(positions), np.array(velocities)
 
+def sample_non_overlapping_positions(img_size, radius, min_gap=6.0):
+    low = radius + 5
+    high = img_size - radius - 5
+
+    for _ in range(1000):
+        pos1 = np.random.uniform(low, high, size=2)
+        pos2 = np.random.uniform(low, high, size=2)
+
+        if np.linalg.norm(pos2 - pos1) >= 2 * radius + min_gap:
+            return pos1.astype(float), pos2.astype(float)
+
+    raise RuntimeError("Could not sample non-overlapping billiard positions")
+
+
+def sample_velocity(vel_scale, min_speed=1.5, max_component=4.0):
+    for _ in range(1000):
+        velocity = np.random.uniform(
+            -max_component,
+            max_component,
+            size=2,
+        ) * vel_scale
+
+        if np.linalg.norm(velocity) >= min_speed * vel_scale:
+            return velocity.astype(float)
+
+    raise RuntimeError("Could not sample a valid billiard velocity")
 
 def simulate_billiard_balls(num_frames=100, img_size=128, radius=8, gravity_scale=1.0, vel_scale=1.0, position_shift="none"):
     """Env 2: 2-Ball Elastic Collisions & OOD Parameters"""
-    pos1 = np.array([30.0, 40.0], dtype=float)
-    vel1 = np.array([3.5, 2.0], dtype=float) * vel_scale
-    
-    pos2 = np.array([90.0, 80.0], dtype=float)
-    vel2 = np.array([-2.5, -3.0], dtype=float) * vel_scale
+    pos1, pos2 = sample_non_overlapping_positions(
+        img_size=img_size,
+        radius=radius,
+    )
+
+    vel1 = sample_velocity(vel_scale)
+    vel2 = sample_velocity(vel_scale)
 
     if position_shift == "corners":
         pos1 = np.array([20.0, 20.0], dtype=float)
@@ -177,12 +206,20 @@ def main():
     parser.add_argument('--output_dir', type=str, default=None)
     parser.add_argument('--num_trajectories', type=int, default=110)
     parser.add_argument('--num_frames', type=int, default=100)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--gravity_scale", type=float, default=1.0, help="Scale factor for gravity / force strength")
     parser.add_argument("--vel_scale", type=float, default=1.0, help="Scale factor for initial velocity")
     parser.add_argument("--position_shift", type=str, default="none", choices=["none", "corners", "top_half"], help="Shift initial spawn position distribution")
     args = parser.parse_args()
 
+    np.random.seed(args.seed)
+
     out_dir = args.output_dir or f"physics-data-{args.env}"
+
+    if args.overwrite and os.path.exists(out_dir):
+        shutil.rmtree(out_dir)
+
     os.makedirs(out_dir, exist_ok=True)
 
     sim_func = {
