@@ -88,6 +88,10 @@ RUNS = [
             "models/envv2_billiard_gru/"
             "physics/evaluation_results_test.json"
         ),
+        # Allow the table to be built before this long run finishes.
+        # As soon as the JSON file exists, the real values are loaded
+        # automatically and the placeholder disappears.
+        "optional": True,
     },
     {
         "environment": "billiard",
@@ -271,6 +275,7 @@ def validate_environment_protocol(
             if row["environment"] == environment
         ]
 
+        # Keep one row per model in the output, including the optional blank row.
         if len(env_rows) != 3:
             errors.append(
                 f"{environment}: expected 3 model "
@@ -278,10 +283,25 @@ def validate_environment_protocol(
             )
             continue
 
+        available_rows = [
+            row
+            for row in env_rows
+            if row["one_step_position_aee"] is not None
+        ]
+
+        # An optional unfinished run has no protocol metadata yet.
+        # Validate only the available result rows against each other.
+        if len(available_rows) < 2:
+            errors.append(
+                f"{environment}: fewer than 2 completed "
+                "model results are available"
+            )
+            continue
+
         for field in comparable_fields:
             values = []
 
-            for row in env_rows:
+            for row in available_rows:
                 value = row[field]
 
                 if field == "data_dir":
@@ -297,7 +317,7 @@ def validate_environment_protocol(
                 details = ", ".join(
                     f"{row['model_type']}="
                     f"{row[field]}"
-                    for row in env_rows
+                    for row in available_rows
                 )
 
                 errors.append(
@@ -308,7 +328,7 @@ def validate_environment_protocol(
 
     if errors:
         raise ValueError(
-            "The environment results do not share "
+            "The available environment results do not share "
             "one evaluation protocol:\n- "
             + "\n- ".join(errors)
         )
@@ -328,9 +348,38 @@ def collect_rows(
         path = root / config["path"]
 
         if not path.exists():
-            missing_files.append(
-                str(path)
-            )
+            if config.get("optional", False):
+
+                rows.append(
+                    {
+                        "environment": config[
+                            "environment"
+                        ],
+                        "model_type": config[
+                            "model_type"
+                        ],
+                        "run": config[
+                            "run"
+                        ],
+
+                        "one_step_position_aee": None,
+                        "one_step_position_failures": None,
+                        "one_step_position_total": None,
+                        "rollout_position_aee": None,
+                        "rollout_position_failures": None,
+                        "rollout_position_total": None,
+                        "data_dir": None,
+                        "context": None,
+                        "rollout_steps": None,
+                        "eval_stride": None,
+                        "num_objects": None,
+                    }
+                )
+            else:
+                missing_files.append(
+                    str(path)
+                )
+
             continue
 
         data = load_json(
@@ -376,6 +425,9 @@ def collect_rows(
 
 
 def format_float(value):
+    if value is None:
+        return "—"
+
     return f"{float(value):.4f}"
 
 
@@ -383,6 +435,12 @@ def format_failures(
     failures,
     total,
 ):
+    if (
+        failures is None
+        or total is None
+    ):
+        return "—"
+
     return (
         f"{int(failures)} / "
         f"{int(total)}"
@@ -397,6 +455,7 @@ def write_csv(
         "environment",
         "model_type",
         "run",
+
         "one_step_position_aee",
         "one_step_position_failures",
         "one_step_position_total",
@@ -436,15 +495,29 @@ def write_markdown(
             "No result rows were collected"
         )
 
-    context = rows[0][
+    first_available_row = next(
+        (
+            row
+            for row in rows
+            if row["one_step_position_aee"] is not None
+        ),
+        None,
+    )
+
+    if first_available_row is None:
+        raise ValueError(
+            "No result rows with metrics were collected"
+        )
+
+    context = first_available_row[
         "context"
     ]
 
-    rollout_steps = rows[0][
+    rollout_steps = first_available_row[
         "rollout_steps"
     ]
 
-    eval_stride = rows[0][
+    eval_stride = first_available_row[
         "eval_stride"
     ]
 
@@ -452,7 +525,7 @@ def write_markdown(
         "# Environment evaluation summary",
         "",
         (
-            "All models were retrained on "
+            "Completed models were retrained on "
             "environment-specific shared "
             "train/validation splits and evaluated "
             "on the same held-out trajectories "
