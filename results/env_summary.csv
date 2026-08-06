@@ -6,5 +6,5 @@ magnetic_wells,lstm,envv2_magwells_lstm,1.0589993000030518,0,950,32.137310028076
 magnetic_wells,gru,envv2_magwells_gru,0.9620539546012878,0,950,16.470151901245117,0,9000,data/env_v2/magnetic_wells/test,5,10,5,1
 magnetic_wells,latent_flow,envv2_magwells_latent_flow,1.1496902704238892,0,950,11.878609657287598,0,9000,data/env_v2/magnetic_wells/test,5,10,5,1
 billiard,lstm,envv2_billiard_lstm,0.7535306811332703,0,950,8.046079635620117,0,9000,data/env_v2/billiard/test,5,10,5,2
-billiard,gru,envv2_billiard_gru,,,,,,,,,,,
+billiard,gru,envv2_billiard_gru,0.7383825182914734,0,950,5.2318501472473145,0,9000,data/env_v2/billiard/test,5,10,5,2
 billiard,latent_flow,envv2_billiard_latent_flow,1.1202980279922485,0,950,5.587751865386963,0,9000,data/env_v2/billiard/test,5,10,5,2

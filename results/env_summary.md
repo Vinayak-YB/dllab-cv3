@@ -15,7 +15,7 @@ Only position AEE is used for direct model comparison. Lower is better.
 | magnetic_wells | gru | envv2_magwells_gru | 0.9621 | 0 / 950 | 16.4702 | 0 / 9000 |
 | magnetic_wells | latent_flow | envv2_magwells_latent_flow | 1.1497 | 0 / 950 | 11.8786 | 0 / 9000 |
 | billiard | lstm | envv2_billiard_lstm | 0.7535 | 0 / 950 | 8.0461 | 0 / 9000 |
-| billiard | gru | envv2_billiard_gru | — | — | — | — |
+| billiard | gru | envv2_billiard_gru | 0.7384 | 0 / 950 | 5.2319 | 0 / 9000 |
 | billiard | latent_flow | envv2_billiard_latent_flow | 1.1203 | 0 / 950 | 5.5878 | 0 / 9000 |
 
 Latent Flow uses auxiliary ground-truth state supervision during training; LSTM and GRU are trained from image reconstruction only.
